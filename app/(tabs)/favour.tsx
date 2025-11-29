@@ -1,16 +1,16 @@
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { Calendar, ChevronLeft, MapPin } from "lucide-react-native";
 import { useState } from "react";
 import {
-  Alert,
-  Platform,
+  Text,
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   View,
+  Platform,
+  Alert,
 } from "react-native";
+import { ChevronLeft, MapPin, Calendar } from "lucide-react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { Picker } from '@react-native-picker/picker';
 
@@ -34,12 +34,10 @@ export default function PostFavourScreen() {
   };
 
   const handlePost = () => {
-    if (!title.trim() || !description.trim()) {
-      Alert.alert("Missing info", "Please add a title and description");
+      // TODO: Send to backend / show success
       return;
     }
-    // TODO: Send to backend / show success
-
+    
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -280,4 +278,3 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 });
-}
