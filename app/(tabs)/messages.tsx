@@ -1,7 +1,5 @@
-import React from "react";
 import { Text, FlatList, Pressable, StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
 import { formatDistanceToNow } from "date-fns";
 
 // Mock conversations
@@ -19,7 +17,7 @@ const conversations = [
     name: "Ashley Chen",
     avatar: "https://i.pravatar.cc/300?img=5",
     lastMessage: "Thanks again for helping with the groceries!",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5),
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5), // 5 hours ago
     unread: 0,
   },
   {
@@ -27,7 +25,7 @@ const conversations = [
     name: "Mike Torres",
     avatar: "https://i.pravatar.cc/300?img=7",
     lastMessage: "Hey, still need help with the dog walk?",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24),
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // yesterday
     unread: 1,
   },
   {
@@ -41,10 +39,11 @@ const conversations = [
 ];
 
 export default function MessagesScreen() {
-  const router = useRouter();
 
   const renderItem = ({ item }: { item: typeof conversations[0] }) => (
-      <Pressable style={styles.chatItem} onPress={() => router.push(`/chat/${item.id}`)}>
+      <Pressable
+          style={styles.chatItem}
+      >
         <View style={styles.avatarContainer}>
           <Image source={{ uri: item.avatar }} style={styles.avatar} />
           {item.unread > 0 && <View style={styles.onlineDot} />}
@@ -53,11 +52,15 @@ export default function MessagesScreen() {
         <View style={styles.chatInfo}>
           <View style={styles.nameRow}>
             <Text style={styles.name}>{item.name}</Text>
-            <Text style={styles.timestamp}>{formatDistanceToNow(item.timestamp, { addSuffix: true })}</Text>
+            <Text style={styles.timestamp}>
+              {formatDistanceToNow(item.timestamp, { addSuffix: true })}
+            </Text>
           </View>
 
           <View style={styles.messageRow}>
-            <Text style={styles.lastMessage} numberOfLines={1}>{item.lastMessage}</Text>
+            <Text style={styles.lastMessage} numberOfLines={1}>
+              {item.lastMessage}
+            </Text>
             {item.unread > 0 && (
                 <View style={styles.unreadBadge}>
                   <Text style={styles.unreadText}>{item.unread}</Text>
@@ -70,12 +73,12 @@ export default function MessagesScreen() {
 
   return (
       <View style={styles.container}>
+        {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()}>
-            <Text style={styles.title}>Messages</Text>
-          </Pressable>
+          <Text style={styles.title}>Messages</Text>
         </View>
 
+        {/* Chat List */}
         <FlatList
             data={conversations}
             keyExtractor={(item) => item.id}
@@ -88,20 +91,106 @@ export default function MessagesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc" },
-  header: { paddingTop: 60, paddingHorizontal: 24, paddingBottom: 20, backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#e5e7eb" },
-  title: { fontSize: 32, fontWeight: "800", color: "#11181c", paddingTop: 8, includeFontPadding: false, textAlignVertical: "center" },
-  list: { paddingTop: 12, paddingBottom: 100 },
-  chatItem: { flexDirection: "row", paddingHorizontal: 20, paddingVertical: 14, backgroundColor: "#fff", marginBottom: 8, marginHorizontal: 16, borderRadius: 20, elevation: 2 },
-  avatarContainer: { position: "relative" },
-  avatar: { width: 60, height: 60, borderRadius: 30 },
-  onlineDot: { position: "absolute", right: 2, bottom: 2, width: 16, height: 16, borderRadius: 8, backgroundColor: "#22c55e", borderWidth: 3, borderColor: "#fff" },
-  chatInfo: { flex: 1, marginLeft: 16, justifyContent: "center" },
-  nameRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
-  name: { fontSize: 17, fontWeight: "600", color: "#11181c" },
-  timestamp: { fontSize: 13, color: "#94a3b8" },
-  messageRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  lastMessage: { fontSize: 15, color: "#64748b", flex: 1, marginRight: 12 },
-  unreadBadge: { backgroundColor: "#22d3ee", minWidth: 24, height: 24, borderRadius: 12, justifyContent: "center", alignItems: "center", paddingHorizontal: 8 },
-  unreadText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  container: {
+    flex: 1,
+    backgroundColor: "#f8fafc",
+  },
+  header: {
+    paddingTop: 60,
+    paddingHorizontal: 24,
+    paddingBottom: 20,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: "800",
+    color: "#11181c",
+    paddingTop: 8,
+    includeFontPadding: false,
+    textAlignVertical: "center",
+  },
+  list: {
+    paddingTop: 12,
+    paddingBottom: 100,
+  },
+  chatItem: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: "#fff",
+    marginBottom: 8,
+    marginHorizontal: 16,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  avatarContainer: {
+    position: "relative",
+  },
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  onlineDot: {
+    position: "absolute",
+    right: 2,
+    bottom: 2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#22c55e",
+    borderWidth: 3,
+    borderColor: "#fff",
+  },
+  chatInfo: {
+    flex: 1,
+    marginLeft: 16,
+    justifyContent: "center",
+  },
+  nameRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  name: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: "#11181c",
+  },
+  timestamp: {
+    fontSize: 13,
+    color: "#94a3b8",
+  },
+  messageRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  lastMessage: {
+    fontSize: 15,
+    color: "#64748b",
+    flex: 1,
+    marginRight: 12,
+  },
+  unreadBadge: {
+    backgroundColor: "#22d3ee",
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 8,
+  },
+  unreadText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
+  },
 });
