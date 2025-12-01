@@ -26,40 +26,34 @@ const seededHistories: Record<string, ChatMessage[]> = {
   "1": [
     {
       id: "1",
-      from: "them",
+      from: "me",
       text: "Hey Tom, are you still okay to help with the move?",
       time: new Date(Date.now() - 1000 * 60 * 90),
     },
     {
       id: "2",
-      from: "me",
+      from: "them",
       text: "Yep! Just let me know what time works best.",
       time: new Date(Date.now() - 1000 * 60 * 80),
     },
     {
       id: "3",
-      from: "them",
+      from: "me",
       text: "Morning is best for me, like around 10?",
       time: new Date(Date.now() - 1000 * 60 * 70),
     },
     {
       id: "4",
-      from: "me",
+      from: "them",
       text: "Sounds good, I’ll be there at 10 then.",
       time: new Date(Date.now() - 1000 * 60 * 60),
-    },
-    {
-      id: "5",
-      from: "them",
-      text: "Sounds good! I can help tomorrow at 3pm",
-      time: new Date(Date.now() - 1000 * 60 * 30), // matches lastMessage
-    },
+    }
   ],
   "2": [
     {
       id: "1",
       from: "them",
-      text: "Hey Ashley, did you get home okay?",
+      text: "Hey Daniel, did you get home okay?",
       time: new Date(Date.now() - 1000 * 60 * 400),
     },
     {
@@ -111,44 +105,44 @@ const seededHistories: Record<string, ChatMessage[]> = {
       from: "them",
       text: "That would be awesome, thank you!",
       time: new Date(Date.now() - 1000 * 60 * 1440 + 1000 * 60 * 30),
-    },
-    {
-      id: "5",
-      from: "them",
-      text: "Hey, still need help with the dog walk?",
-      time: new Date(Date.now() - 1000 * 60 * 60 * 24), // matches lastMessage
-    },
+    }
   ],
   "4": [
     {
       id: "1",
-      from: "them",
-      text: "Hey Sarah, what are your plans for the weekend?",
+      from: "me",
+      text: "Hi Sarah! Hey! Just checking if you have all the parts for the furniture assembly favour request. I’m open to help, but I want to be sure before accepting. I’ve had past experience where I showed up and the parts were totally missing.",
       time: new Date(Date.now() - 1000 * 60 * 60 * 60),
     },
     {
       id: "2",
-      from: "me",
-      text: "Nothing big yet, just thinking of relaxing.",
+      from: "them",
+      text: "Oh wow, thanks for checking. It’s an IKEA dining table kit. The replacement bolts are arriving today, but the tabletop box is here and unopened.",
       time: new Date(Date.now() - 1000 * 60 * 60 * 58),
     },
     {
       id: "3",
-      from: "them",
-      text: "If you’re free, we could grab coffee and plan the favours stuff.",
+      from: "me",
+      text: "Got it — so tabletop, legs, and hardware (except bolts) are physically with you right now? And you’ll have bolts in hand before we confirm?",
       time: new Date(Date.now() - 1000 * 60 * 60 * 55),
     },
     {
       id: "4",
-      from: "me",
-      text: "That sounds perfect actually.",
+      from: "them",
+      text: "Yes, I’ll have all bolts by 2pm. Everything else is in the room. I can send a photo if you want.",
       time: new Date(Date.now() - 1000 * 60 * 60 * 50),
     },
     {
       id: "5",
+      from: "me",
+      text: "No need unless something looks off later. If bolts arrive as planned, I can tentatively take requests for Saturday afternoon and adjust last-minute if needed.",
+      time: new Date(Date.now() - 1000 * 60 * 60 * 48),
+    },
+    {
+      id: "6",
       from: "them",
-      text: "Yes, I’m free this weekend!",
-      time: new Date(Date.now() - 1000 * 60 * 60 * 48), // matches lastMessage
+      text: "That works, thank you. I’ll confirm once bolts land!",
+      time: new Date(Date.now() - 1000 * 60 * 60 * 48),
     },
   ],
 };
