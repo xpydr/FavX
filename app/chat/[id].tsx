@@ -21,6 +21,7 @@ type ChatMessage = {
   time: Date;
 };
 
+// mock messages
 const initialMockMessages: ChatMessage[] = [
   {
     id: "1",
@@ -48,15 +49,32 @@ const initialMockMessages: ChatMessage[] = [
   },
 ];
 
+const chatStore: Record<string, ChatMessage[]> = {};
+
+function getInitialMessagesForConversation(id?: string): ChatMessage[] {
+  if (!id) {
+    return initialMockMessages.map((m) => ({ ...m }));
+  }
+
+  if (!chatStore[id]) {
+    // first time opening this chat → clone mock template
+    chatStore[id] = initialMockMessages.map((m) => ({ ...m }));
+  }
+  return chatStore[id];
+}
+
 export default function ChatScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ id: string; name?: string }>();
+  const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
   const { updateConversationLastMessage } = useMessages();
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMockMessages);
+
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    getInitialMessagesForConversation(id)
+  );
   const [input, setInput] = useState("");
 
-  const name = params.name ?? "User";
-  const conversationId = params.id;
+  const displayName = name ?? "User";
+  const conversationId = id;
 
   const handleSend = () => {
     const trimmed = input.trim();
@@ -69,8 +87,18 @@ export default function ChatScreen() {
       time: new Date(),
     };
 
-    setMessages((prev) => [...prev, newMsg]);
-    updateConversationLastMessage(conversationId, trimmed); // updates list + order
+    setMessages((prev) => {
+      const updated = [...prev, newMsg];
+
+      // update in-memory store so re-visits see latest history
+      chatStore[conversationId] = updated;
+
+      return updated;
+    });
+
+    // update list item on Messages screen
+    updateConversationLastMessage(conversationId, trimmed);
+
     setInput("");
   };
 
@@ -80,12 +108,12 @@ export default function ChatScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={80}
     >
-      {/* Custom Header */}
+      {/* Header */}
       <View style={styles.header}>
         <Pressable hitSlop={20} onPress={() => router.back()}>
           <ChevronLeft size={28} color="#11181c" />
         </Pressable>
-        <Text style={styles.headerTitle}>Conversation with {name}</Text>
+        <Text style={styles.headerTitle}>Conversation with {displayName}</Text>
         <View style={{ width: 28 }} />
       </View>
 
@@ -146,7 +174,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#e5e7eb",
   },
-  headerTitle: { fontSize: 22, fontWeight: "800", color: "#11181c" },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#11181c",
+  },
   list: { flex: 1, paddingTop: 12 },
 
   bubble: {
@@ -206,7 +238,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 24,
     backgroundColor: "#ffffff",
     borderTopWidth: 1,
     borderTopColor: "#e5e7eb",
