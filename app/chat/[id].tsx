@@ -1,15 +1,32 @@
-import React from "react";
-import { Text, Pressable, StyleSheet, View, ScrollView } from "react-native";
+import React, { useState } from "react";
+import {
+  Text,
+  Pressable,
+  StyleSheet,
+  View,
+  ScrollView,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { formatDistanceToNow } from "date-fns";
+import { useMessages } from "../context/MessagesContext";
 
-const mockMessages = [
+type ChatMessage = {
+  id: string;
+  from: "me" | "them";
+  text: string;
+  time: Date;
+};
+
+const initialMockMessages: ChatMessage[] = [
   {
     id: "1",
     from: "them",
     text: "Hey, I saw your profile. How experienced are you with mobile app features like maps and sensor use?",
-    time: new Date(Date.now() - 1000 * 60 * 30), // 30 min ago
+    time: new Date(Date.now() - 1000 * 60 * 30),
   },
   {
     id: "2",
@@ -29,33 +46,40 @@ const mockMessages = [
     text: "Yes! I break features into small steps and test them carefully to fit mobile device limits.",
     time: new Date(Date.now() - 1000 * 60 * 15),
   },
-  {
-    id: "5",
-    from: "them",
-    text: "Nice. Let’s try building more features this weekend.",
-    time: new Date(Date.now() - 1000 * 60 * 10),
-  },
-  {
-    id: "6",
-    from: "me",
-    text: "Sounds good!",
-    time: new Date(Date.now() - 1000 * 60 * 9),
-  },
-  {
-    id: "7",
-    from: "them",
-    text: "Thanks!",
-    time: new Date(Date.now() - 1000 * 60 * 5),
-  },
 ];
 
 export default function ChatScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams();
-  const name = String(params.name ?? "User");
+  const params = useLocalSearchParams<{ id: string; name?: string }>();
+  const { updateConversationLastMessage } = useMessages();
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMockMessages);
+  const [input, setInput] = useState("");
+
+  const name = params.name ?? "User";
+  const conversationId = params.id;
+
+  const handleSend = () => {
+    const trimmed = input.trim();
+    if (!trimmed || !conversationId) return;
+
+    const newMsg: ChatMessage = {
+      id: String(Date.now()),
+      from: "me",
+      text: trimmed,
+      time: new Date(),
+    };
+
+    setMessages((prev) => [...prev, newMsg]);
+    updateConversationLastMessage(conversationId, trimmed); // updates list + order
+    setInput("");
+  };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: "#f8fafc" }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={80}
+    >
       {/* Custom Header */}
       <View style={styles.header}>
         <Pressable hitSlop={20} onPress={() => router.back()}>
@@ -65,9 +89,13 @@ export default function ChatScreen() {
         <View style={{ width: 28 }} />
       </View>
 
-      {/* Message bubbles */}
-      <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-        {mockMessages.map((m) => {
+      {/* Messages */}
+      <ScrollView
+        style={styles.list}
+        contentContainerStyle={{ paddingBottom: 90 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {messages.map((m) => {
           const isMe = m.from === "me";
           return (
             <View
@@ -77,13 +105,10 @@ export default function ChatScreen() {
                 isMe ? styles.bubbleMe : styles.bubbleThem,
               ]}
             >
-              {/* Tail */}
               {!isMe && <View style={styles.tailThem} />}
               {isMe && <View style={styles.tailMe} />}
 
               <Text style={styles.bubbleText}>{m.text}</Text>
-
-              {/* Sent time */}
               <Text style={styles.bubbleTime}>
                 Sent {formatDistanceToNow(m.time, { addSuffix: true })}
               </Text>
@@ -91,12 +116,25 @@ export default function ChatScreen() {
           );
         })}
       </ScrollView>
-    </View>
+
+      {/* Input bar */}
+      <View style={styles.inputBar}>
+        <TextInput
+          style={styles.input}
+          placeholder="Type a message..."
+          placeholderTextColor="#94a3b8"
+          value={input}
+          onChangeText={setInput}
+        />
+        <Pressable style={styles.sendButton} onPress={handleSend}>
+          <Text style={styles.sendText}>Send</Text>
+        </Pressable>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc" },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -109,7 +147,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#e5e7eb",
   },
   headerTitle: { fontSize: 22, fontWeight: "800", color: "#11181c" },
-  list: { flex: 1, paddingTop: 12, paddingBottom: 100 },
+  list: { flex: 1, paddingTop: 12 },
 
   bubble: {
     padding: 14,
@@ -125,7 +163,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 18,
     borderBottomLeftRadius: 18,
     borderBottomRightRadius: 18,
-    marginHorizontal: 16, // side padding
+    marginHorizontal: 16,
   },
   bubbleMe: {
     alignSelf: "flex-end",
@@ -136,7 +174,6 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 18,
     marginHorizontal: 16,
   },
-
   tailThem: {
     position: "absolute",
     left: -6,
@@ -157,16 +194,42 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 10,
     transform: [{ rotate: "-45deg" }],
   },
-
-  bubbleText: {
-    fontSize: 16,
-    color: "#11181c",
-  },
+  bubbleText: { fontSize: 16, color: "#11181c" },
   bubbleTime: {
     fontSize: 12,
     color: "#475569",
     marginTop: 6,
     fontWeight: "600",
   },
-});
 
+  inputBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "#ffffff",
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+  },
+  input: {
+    flex: 1,
+    backgroundColor: "#f1f5f9",
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: "#11181c",
+    marginRight: 8,
+  },
+  sendButton: {
+    backgroundColor: "#15b1c9ff",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
+  },
+  sendText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 15,
+  },
+});
