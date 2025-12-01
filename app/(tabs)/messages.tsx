@@ -65,13 +65,7 @@ export default function MessagesScreen() {
   const renderItem = ({ item }: { item: (typeof conversations)[0] }) => (
     <Pressable
       style={styles.chatItem}
-      onPress={() => {
-        if (item.unread > 0) {
-          Alert.alert(item.name, `You have ${item.unread} unread messages.`);
-        } else {
-          Alert.alert(item.name, "No unread messages.");
-        }
-      }}
+      onPress={() => router.push({ pathname: "/chat/[id]", params: { id: item.id, name: item.name } })}
     >
       <View style={styles.avatarContainer}>
         <Image source={{ uri: item.avatar }} style={styles.avatar} />
