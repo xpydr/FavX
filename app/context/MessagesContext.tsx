@@ -66,7 +66,7 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
                 ...c,
                 lastMessage: newText,
                 timestamp: new Date(),
-                // you could also bump unread here if you want
+                isUnread: true,
               }
             : c
         )

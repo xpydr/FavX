@@ -10,7 +10,7 @@ import {
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { ChevronLeft, Search } from "lucide-react-native";
-import { useMessages } from "../context/MessagesContext"; // ../ from (tabs)
+import { useMessages } from "../context/MessagesContext";
 
 export default function MessagesScreen() {
   const router = useRouter();

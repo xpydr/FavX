@@ -21,83 +21,204 @@ type ChatMessage = {
   time: Date;
 };
 
-// mock messages
-const initialMockMessages: ChatMessage[] = [
-  {
-    id: "1",
-    from: "them",
-    text: "Hey, I saw your profile. How experienced are you with mobile app features like maps and sensor use?",
-    time: new Date(Date.now() - 1000 * 60 * 30),
-  },
-  {
-    id: "2",
-    from: "me",
-    text: "Hey! I’m still a beginner, but I already integrated map routing and local storage using FavX’s Expo structure.",
-    time: new Date(Date.now() - 1000 * 60 * 25),
-  },
-  {
-    id: "3",
-    from: "them",
-    text: "Cool. Are you good at explaining things step by step?",
-    time: new Date(Date.now() - 1000 * 60 * 20),
-  },
-  {
-    id: "4",
-    from: "me",
-    text: "Yes! I break features into small steps and test them carefully to fit mobile device limits.",
-    time: new Date(Date.now() - 1000 * 60 * 15),
-  },
-];
+// old history per conversation id
+const seededHistories: Record<string, ChatMessage[]> = {
+  "1": [
+    {
+      id: "1",
+      from: "them",
+      text: "Hey Tom, are you still okay to help with the move?",
+      time: new Date(Date.now() - 1000 * 60 * 90),
+    },
+    {
+      id: "2",
+      from: "me",
+      text: "Yep! Just let me know what time works best.",
+      time: new Date(Date.now() - 1000 * 60 * 80),
+    },
+    {
+      id: "3",
+      from: "them",
+      text: "Morning is best for me, like around 10?",
+      time: new Date(Date.now() - 1000 * 60 * 70),
+    },
+    {
+      id: "4",
+      from: "me",
+      text: "Sounds good, I’ll be there at 10 then.",
+      time: new Date(Date.now() - 1000 * 60 * 60),
+    },
+    {
+      id: "5",
+      from: "them",
+      text: "Sounds good! I can help tomorrow at 3pm",
+      time: new Date(Date.now() - 1000 * 60 * 30), // matches lastMessage
+    },
+  ],
+  "2": [
+    {
+      id: "1",
+      from: "them",
+      text: "Hey Ashley, did you get home okay?",
+      time: new Date(Date.now() - 1000 * 60 * 400),
+    },
+    {
+      id: "2",
+      from: "me",
+      text: "Yep, all good! Thanks again for the ride 🙂",
+      time: new Date(Date.now() - 1000 * 60 * 380),
+    },
+    {
+      id: "3",
+      from: "them",
+      text: "No worries! I grabbed the groceries on the way too.",
+      time: new Date(Date.now() - 1000 * 60 * 360),
+    },
+    {
+      id: "4",
+      from: "me",
+      text: "You’re the best, really appreciate it.",
+      time: new Date(Date.now() - 1000 * 60 * 350),
+    },
+    {
+      id: "5",
+      from: "them",
+      text: "Thanks again for helping with the groceries!",
+      time: new Date(Date.now() - 1000 * 60 * 300), // matches lastMessage
+    },
+  ],
+  "3": [
+    {
+      id: "1",
+      from: "me",
+      text: "Hey Mike, how’s the pup doing?",
+      time: new Date(Date.now() - 1000 * 60 * 1440 * 2), // ~2 days ago
+    },
+    {
+      id: "2",
+      from: "them",
+      text: "He’s good! A bit restless lately though.",
+      time: new Date(Date.now() - 1000 * 60 * 1440 * 2 + 1000 * 60 * 30),
+    },
+    {
+      id: "3",
+      from: "me",
+      text: "If you want, I can take him for a longer walk this week.",
+      time: new Date(Date.now() - 1000 * 60 * 1440 * 2 + 1000 * 60 * 60),
+    },
+    {
+      id: "4",
+      from: "them",
+      text: "That would be awesome, thank you!",
+      time: new Date(Date.now() - 1000 * 60 * 1440 + 1000 * 60 * 30),
+    },
+    {
+      id: "5",
+      from: "them",
+      text: "Hey, still need help with the dog walk?",
+      time: new Date(Date.now() - 1000 * 60 * 60 * 24), // matches lastMessage
+    },
+  ],
+  "4": [
+    {
+      id: "1",
+      from: "them",
+      text: "Hey Sarah, what are your plans for the weekend?",
+      time: new Date(Date.now() - 1000 * 60 * 60 * 60),
+    },
+    {
+      id: "2",
+      from: "me",
+      text: "Nothing big yet, just thinking of relaxing.",
+      time: new Date(Date.now() - 1000 * 60 * 60 * 58),
+    },
+    {
+      id: "3",
+      from: "them",
+      text: "If you’re free, we could grab coffee and plan the favours stuff.",
+      time: new Date(Date.now() - 1000 * 60 * 60 * 55),
+    },
+    {
+      id: "4",
+      from: "me",
+      text: "That sounds perfect actually.",
+      time: new Date(Date.now() - 1000 * 60 * 60 * 50),
+    },
+    {
+      id: "5",
+      from: "them",
+      text: "Yes, I’m free this weekend!",
+      time: new Date(Date.now() - 1000 * 60 * 60 * 48), // matches lastMessage
+    },
+  ],
+};
 
+// in-memory store: id → messages (kept as-is)
 const chatStore: Record<string, ChatMessage[]> = {};
-
-function getInitialMessagesForConversation(id?: string): ChatMessage[] {
-  if (!id) {
-    return initialMockMessages.map((m) => ({ ...m }));
-  }
-
-  if (!chatStore[id]) {
-    // first time opening this chat → clone mock template
-    chatStore[id] = initialMockMessages.map((m) => ({ ...m }));
-  }
-  return chatStore[id];
-}
 
 export default function ChatScreen() {
   const router = useRouter();
   const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
-  const { updateConversationLastMessage } = useMessages();
+  const { conversations, updateConversationLastMessage } = useMessages();
 
-  const [messages, setMessages] = useState<ChatMessage[]>(() =>
-    getInitialMessagesForConversation(id)
-  );
-  const [input, setInput] = useState("");
-
-  const displayName = name ?? "User";
   const conversationId = id;
+  const displayName = name ?? "User";
+
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    if (!conversationId) return [];
+
+    // already have messages in memory
+    if (chatStore[conversationId]) {
+      return chatStore[conversationId];
+    }
+
+    // use seeded history
+    if (seededHistories[conversationId]) {
+      const history = seededHistories[conversationId].map((m) => ({ ...m }));
+      chatStore[conversationId] = history;
+      return history;
+    }
+
+    // seed from Messages list snippet
+    const conv = conversations.find((c) => c.id === conversationId);
+    if (conv) {
+      const seed: ChatMessage = {
+        id: `seed-${conversationId}`,
+        from: "them",
+        text: conv.lastMessage,
+        time: conv.timestamp,
+      };
+      chatStore[conversationId] = [seed];
+      return chatStore[conversationId];
+    }
+
+    // nothing known yet
+    chatStore[conversationId] = [];
+    return [];
+  });
+
+  const [input, setInput] = useState("");
 
   const handleSend = () => {
     const trimmed = input.trim();
     if (!trimmed || !conversationId) return;
 
+    const now = new Date();
     const newMsg: ChatMessage = {
-      id: String(Date.now()),
+      id: String(now.getTime()),
       from: "me",
       text: trimmed,
-      time: new Date(),
+      time: now,
     };
 
     setMessages((prev) => {
       const updated = [...prev, newMsg];
-
-      // update in-memory store so re-visits see latest history
-      chatStore[conversationId] = updated;
-
+      chatStore[conversationId] = updated; // persist in memory
       return updated;
     });
 
-    // update list item on Messages screen
-    updateConversationLastMessage(conversationId, trimmed);
+    // keep Messages page snippet + time in sync
+    updateConversationLastMessage(conversationId, trimmed, now);
 
     setInput("");
   };
