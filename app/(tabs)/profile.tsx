@@ -4,7 +4,7 @@ import { Image } from "expo-image";
 import { useState } from "react";
 
 export default function PublicProfileScreen() {
-  // Mock values
+  // Mock skills
   const [skills, setSkills] = useState([
     "Tech-savvy",
     "Friendly & approachable",
@@ -33,6 +33,62 @@ export default function PublicProfileScreen() {
     setSkills(updated);
     setSelectedSkillIndex(null);
   }
+
+  type Review = {
+    id: string;
+    name: string;
+    avatar: string;
+    stars: number;
+    text: string;
+    date: string; // ISO
+  }
+
+  // Mock reviews
+  const [reviews, setReviews] = useState<Review[]>([
+    {
+      id: "1",
+      name: "Ashley",
+      avatar: "https://i.pravatar.cc/150?img=5",
+      stars: 5,
+      text: "Daniel was amazing, very friendly and well spoken. I’ll definitely contact him again.",
+      date: "2025-06-10",
+    },
+    {
+      id: "2",
+      name: "Mike",
+      avatar: "https://i.pravatar.cc/150?img=7",
+      stars: 4,
+      text: "Helpful and punctual. Would hire again.",
+      date: "2025-01-22",
+    },
+    {
+      id: "3",
+      name: "Sophia",
+      avatar: "https://i.pravatar.cc/150?img=23",
+      stars: 5,
+      text: "Super friendly and great communication.",
+      date: "2024-12-30",
+    },
+    {
+      id: "4",
+      name: "Kevin",
+      avatar: "https://i.pravatar.cc/150?img=9",
+      stars: 3,
+      text: "Did the job but arrived a bit late.",
+      date: "2024-11-18",
+    }
+  ]);
+
+  const [filterStars, setFilterStars] = useState<number | null>(null);
+  const [sortNewest, setSortNewest] = useState(true);
+
+  const filteredReviews = reviews
+    .filter((review) => (filterStars ? review.stars === filterStars : true))
+    .sort((a, b) => {
+      const da = new Date(a.date).getTime();
+      const db = new Date(b.date).getTime();
+      return sortNewest ? db - da : da - db;
+    });
 
   return (
     <View style={styles.container}>
@@ -123,28 +179,56 @@ export default function PublicProfileScreen() {
           </View>
 
           {/* Reviews */}
-          <Text style={styles.sectionTitle}>Verified Reviews</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Verified Reviews</Text>
 
-          <View style={styles.reviewCard}>
-            <View style={styles.reviewHeader}>
-              <Image
-                source={{ uri: "https://i.pravatar.cc/150?img=5" }}
-                style={styles.reviewAvatar}
-              />
-              <View>
-                <Text style={styles.reviewerName}>Ashley</Text>
-                <View style={styles.starsRow}>
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <Star key={i} size={16} color="#fbbf24" fill="#fbbf24" />
-                  ))}
+            {/* Sort */}
+            <Pressable onPress={() => setSortNewest(!sortNewest)} hitSlop={10}>
+              <Text style={styles.sortText}>
+                {sortNewest ? "Newest ↓" : "Oldest ↑"}
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* Filter by star count */}
+          <View style={styles.starFilterRow}>
+            {[5, 4, 3, 2, 1].map((star) => (
+              <Pressable
+                key={star}
+                onPress={() => setFilterStars(filterStars === star ? null : star)}
+                style={[
+                  styles.starFilterBtn,
+                  filterStars === star && styles.starFilterBtnActive,
+                ]}
+              >
+                <Text style={styles.starFilterText}>{star}★</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          {/* Filtered sorted reviews */}
+          {filteredReviews.map((review) => (
+            <View key={review.id} style={styles.reviewCard}>
+              <View style={styles.reviewHeader}>
+                <Image source={{ uri: review.avatar }} style={styles.reviewAvatar} />
+
+                <View>
+                  <Text style={styles.reviewerName}>{review.name}</Text>
+
+                  <View style={styles.starsRow}>
+                    {Array.from({ length: review.stars }).map((_, i) => (
+                      <Star key={i} size={16} color="#fbbf24" fill="#fbbf24" />
+                    ))}
+                  </View>
                 </View>
               </View>
-            </View>
 
-            <Text style={styles.reviewText}>
-              Daniel was amazing, very friendly and well spoken. I’ll definitely contact him again
-            </Text>
-          </View>
+              <Text style={styles.reviewText}>{review.text}</Text>
+              <Text style={styles.reviewDate}>
+                {new Date(review.date).toLocaleDateString()}
+              </Text>
+            </View>
+          ))}
 
           <View style={{ height: 120 }} />
         </View>
@@ -374,6 +458,39 @@ const styles = StyleSheet.create({
     color: "#475569",
     lineHeight: 22,
     marginTop: 8,
+  },
+  reviewDate: {
+    marginTop: 6,
+    fontSize: 12,
+    color: "#64748b",
+  },
+  sortText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#475569",
+  },
+
+  starFilterRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+  },
+  starFilterBtn: {
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "#fff",
+  },
+  starFilterBtnActive: {
+    backgroundColor: "#15b1c9ff",
+    borderColor: "#15b1c9ff",
+  },
+  starFilterText: {
+    color: "#11181c",
+    fontWeight: "600",
+    fontSize: 14,
   },
 
   modalOverlay: {
