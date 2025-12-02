@@ -1,8 +1,38 @@
-import { Text, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Text, Pressable, ScrollView, StyleSheet, View, Modal, TextInput } from "react-native";
 import { ChevronLeft, Star, MapPin, CheckCircle } from "lucide-react-native";
 import { Image } from "expo-image";
+import { useState } from "react";
 
 export default function PublicProfileScreen() {
+  // Mock values
+  const [skills, setSkills] = useState([
+    "Tech-savvy",
+    "Friendly & approachable",
+    "Good with animals",
+    "Has a car",
+  ]);
+
+  const [selectedSkillIndex, setSelectedSkillIndex] = useState<number | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [newSkill, setNewSkill] = useState("");
+
+  const addSkill = () => {
+    const trimmed = newSkill.trim();
+    if (!trimmed) return;
+    if (skills.length >= 10) return;
+    if (trimmed.length > 30) return;
+
+    setSkills([...skills, trimmed]);
+    setNewSkill("");
+    setShowModal(false);
+  }
+
+  const deleteSkill = (index: number) => {
+    const updated = [...skills];
+    updated.splice(index, 1);
+    setSkills(updated);
+    setSelectedSkillIndex(null);
+  }
 
   return (
     <View style={styles.container}>
@@ -46,13 +76,36 @@ export default function PublicProfileScreen() {
             </View>
           </View>
 
-          {/* Skills */}
-          <Text style={styles.sectionTitle}>Skills</Text>
+          {/* Skills Header */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Skills</Text>
+            {skills.length < 10 && (
+              <Pressable onPress={() => setShowModal(true)} hitSlop={10}>
+                <Text style={styles.addSkillPlus}>＋</Text>
+              </Pressable>
+            )}
+          </View>
+
+          {/* Skills List */}
           <View style={styles.skillsContainer}>
-            {["Tech-savvy", "Friendly & approachable", "Good with animals", "Has a car"].map((skill) => (
-              <View key={skill} style={styles.skillTag}>
+            {skills.map((skill, index) => (
+              <Pressable
+                key={skill}
+                onPress={() => setSelectedSkillIndex(index === selectedSkillIndex ? null : index)}
+                style={[styles.skillTag, { position: "relative" }]}
+              >
                 <Text style={styles.skillText}>{skill}</Text>
-              </View>
+
+                {selectedSkillIndex === index && (
+                  <Pressable
+                    onPress={() => deleteSkill(index)}
+                    style={styles.deleteBtn}
+                    hitSlop={10}
+                  >
+                    <Text style={styles.deleteX}>×</Text>
+                  </Pressable>
+                )}
+              </Pressable>
             ))}
           </View>
 
@@ -71,6 +124,7 @@ export default function PublicProfileScreen() {
 
           {/* Reviews */}
           <Text style={styles.sectionTitle}>Verified Reviews</Text>
+
           <View style={styles.reviewCard}>
             <View style={styles.reviewHeader}>
               <Image
@@ -86,15 +140,42 @@ export default function PublicProfileScreen() {
                 </View>
               </View>
             </View>
+
             <Text style={styles.reviewText}>
               Daniel was amazing, very friendly and well spoken. I’ll definitely contact him again
             </Text>
           </View>
 
-          {/* Extra space at bottom */}
           <View style={{ height: 120 }} />
         </View>
       </ScrollView>
+
+      {/* Skill Modal */}
+      <Modal visible={showModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Add Skill</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Enter skill..."
+              maxLength={30}
+              value={newSkill}
+              onChangeText={setNewSkill}
+            />
+
+            <View style={styles.modalButtons}>
+              <Pressable onPress={() => setShowModal(false)} style={styles.cancelBtn}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </Pressable>
+
+              <Pressable onPress={addSkill} style={styles.saveBtn}>
+                <Text style={styles.saveText}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -191,12 +272,23 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 15,
   },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 32,
+    marginBottom: 12,
+  },
+
+  addSkillPlus: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#11181c",
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
     color: "#11181c",
-    marginTop: 32,
-    marginBottom: 12,
   },
   skillsContainer: {
     flexDirection: "row",
@@ -214,6 +306,7 @@ const styles = StyleSheet.create({
     color: "#475569",
     fontWeight: "500",
   },
+
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -227,15 +320,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     alignItems: "center",
     flex: 1,
-    justifyContent: "center",  
+    justifyContent: "center",
   },
   statNumber: {
     fontSize: 32,
     fontWeight: "800",
-    color: "#ffffff",
+    color: "#fff",
     includeFontPadding: false,
     textAlignVertical: "center",
-    paddingTop: 6,  
+    paddingTop: 6,
   },
   statLabel: {
     fontSize: 14,
@@ -243,8 +336,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 6,
     lineHeight: 20,
-    includeFontPadding: false,    
+    includeFontPadding: false,
   },
+
   reviewCard: {
     backgroundColor: "#fff",
     borderRadius: 16,
@@ -280,5 +374,74 @@ const styles = StyleSheet.create({
     color: "#475569",
     lineHeight: 22,
     marginTop: 8,
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalCard: {
+    width: "80%",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 16,
+    color: "#11181c",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    padding: 12,
+    borderRadius: 8,
+    fontSize: 15,
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 16,
+  },
+  cancelBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  cancelText: {
+    color: "#64748b",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  saveBtn: {
+    backgroundColor: "#15b1c9ff",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  saveText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  deleteBtn: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    backgroundColor: "#ef4444",
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  deleteX: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 14,
+    lineHeight: 14,
   },
 });
