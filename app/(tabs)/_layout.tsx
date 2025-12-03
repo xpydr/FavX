@@ -50,6 +50,46 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <MessageCircle size={28} color={color} strokeWidth={2.5} />,
         }}
       />
+
+      {/* Hidden screens – part of the tab navigator, but no tab button */}
+      <Tabs.Screen
+        name="report"
+        options={{
+          href: null,
+          
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          href: null,
+          
+        }}
+      />
+      <Tabs.Screen
+        name="redeem"
+        options={{
+          href: null,
+          
+        }}
+      />
+      <Tabs.Screen
+        name="leaderboard"
+        options={{
+          href: null,
+          
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          href: null,
+          
+        }}
+      />
+
     </Tabs>
+
+
   );
 }
