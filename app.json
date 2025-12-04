@@ -9,19 +9,37 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "config": {
+        "googleMapsApiKey": "IOS_API_KEY_HERE"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "config": {
+        "googleMaps": {
+          "apiKey": "ANDROID_API_KEY_HERE"
+        },
+        "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+        ]
+      }
     },
     "web": {
       "output": "static"
     },
     "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "FavX needs your location to help match your request with helpers nearby."
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",
