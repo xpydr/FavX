@@ -1,18 +1,27 @@
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Picker } from '@react-native-picker/picker';
+import * as ExpoLocation from 'expo-location';
+import { Calendar, ChevronLeft, MapPin, X } from "lucide-react-native";
 import { useState } from "react";
 import {
-  Text,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
+  Text,
   TextInput,
-  View,
-  Platform,
-  Alert,
+  View
 } from "react-native";
-import { ChevronLeft, MapPin, Calendar } from "lucide-react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 
-import { Picker } from '@react-native-picker/picker';
+interface LocationType {
+  latitude: number;
+  longitude: number;
+  address?: string;
+}
 
 export default function PostFavourScreen() {
 
@@ -22,6 +31,15 @@ export default function PostFavourScreen() {
   const [useMyLocation, setUseMyLocation] = useState(true);
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<LocationType | null>(null);
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 37.78825,
+    longitude: -122.4324,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
+  const [loadingLocation, setLoadingLocation] = useState(false);
 
   const categories = ["Errands", "Tutoring", "Cleaning", "Delivery", "Repair", "Other"];
 
@@ -33,10 +51,140 @@ export default function PostFavourScreen() {
     });
   };
 
+  // get user location (using expo-location)
+  const getCurrentLocation = async () => {
+    setLoadingLocation(true);
+
+    try {
+
+      // request permission
+      const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
+
+      if(status !== "granted"){
+        Alert.alert(
+          "Location Permission Required",
+          "Please enable location permissinos in your device settings to use this feature.",
+          [{ text: "OK" }]
+        );
+        setLoadingLocation(false);
+        setUseMyLocation(false);
+        return;
+      }
+
+      // get current location
+      const location = await ExpoLocation.getCurrentPositionAsync({
+        accuracy: ExpoLocation.Accuracy.High
+      });
+
+      const userLocation: LocationType = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude        
+      };
+
+      setSelectedLocation(userLocation);
+      setMapRegion({
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      });
+
+      setLoadingLocation(false);
+      Alert.alert("Success", "Your current location has been set!");
+
+    }catch (error){
+        console.error("Error getting location:", error);
+        Alert.alert(
+          "Error",
+          "Unable to get your location. Please try again or select a location on the map.",
+          [{ text: "OK" }]
+        );
+        setLoadingLocation(false);
+        setUseMyLocation(false);
+    }
+  }
+
+  // handle "use my location" toggle
+  const handleUseMyLocationToggle = () => {
+
+    // user wants to use their location
+    if(!useMyLocation){
+      getCurrentLocation();
+      setUseMyLocation(true);
+    } else {
+
+      // user unchecked the box -- clear the box
+      setSelectedLocation(null);
+      setUseMyLocation(false);
+    }
+  }
+
+  // handle map location selection
+  const handleMapPress = (event: any) => {
+    const coordinates = event.nativeEvent.coordinate;
+    setSelectedLocation({
+      latitude: coordinates.latitude,
+      longitude: coordinates.longitude
+    });
+  }
+
+  // confirm location from map
+  const confirmMapLocation = () => {
+    if(selectedLocation){
+      setUseMyLocation(false);
+      setShowMapModal(false);
+      Alert.alert("Success", "Location has been set!");
+    }else{
+      Alert.alert("Error", "Please select a location on the map.");
+    }
+  }
+
+  // open map modal
+  const openMapModal = async () => {
+    setShowMapModal(true);
+
+    // if no location set, center map on user location
+    if(!selectedLocation){
+      try{
+        const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
+
+        if (status === "granted"){
+          const location = await ExpoLocation.getCurrentPositionAsync({
+            accuracy: ExpoLocation.Accuracy.Balanced
+          });
+          setMapRegion({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          });
+        }
+      }catch (error){
+        console.log("Cold not get location for map centering:", error);
+      }
+    }else{
+
+      // center map on selected location
+      setMapRegion({
+        latitude: selectedLocation.latitude,
+        longitude: selectedLocation.longitude,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      });
+    }
+  }
+
   const handlePost = () => {
-      // TODO: Send to backend / show success
+
+    // validate location is set before posting
+    if(!selectedLocation){
+      Alert.alert("Missing Locaiton", "Please set location for your favour request.");
       return;
     }
+
+    // TODO: Send to backend / show success
+     return;
+  }
     
   return (
     <View style={styles.container}>
@@ -93,19 +241,37 @@ export default function PostFavourScreen() {
           <View style={styles.locationRow}>
             <Pressable
               style={styles.checkboxRow}
-              onPress={() => setUseMyLocation(!useMyLocation)}
+              onPress={handleUseMyLocationToggle}
+              disabled={loadingLocation}
             >
               <View style={styles.checkbox}>
                 {useMyLocation && <View style={styles.checkboxInner} />}
               </View>
-              <Text style={styles.checkboxLabel}>Use my location</Text>
+              <Text style={styles.checkboxLabel}>Use My Location</Text>
+              {loadingLocation && (
+                <ActivityIndicator
+                  size="small"
+                  color="#15b1c9ff"
+                  style={{ marginLeft: 8 }}
+                />
+              )}
             </Pressable>
 
-            <Pressable style={styles.mapButton}>
+            <Pressable style={styles.mapButton} onPress={openMapModal}>
               <MapPin size={18} color="#22d3ee" />
               <Text style={styles.mapButtonText}>Set Location on Map</Text>
             </Pressable>
           </View>
+
+          {/* Location Status */}
+          { selectedLocation && (
+            <View style={styles.locationStatus}>
+              <MapPin size={16} color="#10b981" />
+              <Text style={styles.locationStatusText}>
+                Location Set: {selectedLocation.latitude.toFixed(4)}, {selectedLocation.longitude.toFixed(4)}
+              </Text>
+            </View>
+          )}
 
           {/* Date */}
           <Text style={styles.label}>Select Date</Text>
@@ -140,6 +306,60 @@ export default function PostFavourScreen() {
           <Text style={styles.postButtonText}>Post Favour</Text>
         </Pressable>
       </View>
+
+      {/* Map Modal */}
+      <Modal visible={showMapModal} animationType="slide" onRequestClose={() => setShowMapModal(false)}>
+          <View style={styles.modalContainer}>
+            {/* Modal Header */}
+            <View style={styles.mapHeader}>
+              <Text style={styles.mapHeaderTitle}>Select Location</Text>
+              <Pressable onPress={() => setShowMapModal(false)} hitSlop={20}>
+                <X size={24} color="#11181c" />
+              </Pressable>
+            </View>
+
+            {/* Map */}
+            <MapView
+              provider={PROVIDER_GOOGLE}
+              style={styles.map}
+              initialRegion={mapRegion}
+              onPress={handleMapPress}
+              showsUserLocation
+              showsMyLocationButton>
+
+              {selectedLocation && (
+                <Marker
+                  coordinate={{
+                    latitude: selectedLocation.latitude,
+                    longitude: selectedLocation.longitude
+                  }}
+                  title="Selected Location"
+                />
+              )}
+            </MapView>
+
+            {/* MapInstructions */}
+            <View style={styles.mapInstructions}>
+              <Text style={styles.mapInstructionsText}>
+                Tap anywhere on the map to set your location
+              </Text>
+            </View>
+
+            {/* Confirm Button */}
+            <View style={styles.mapFooter}>
+              <Pressable
+                style={[
+                  styles.confirmButton, 
+                  !selectedLocation && styles.confirmButtonDisabled
+                ]}
+                onPress={confirmMapLocation}
+                disabled={!selectedLocation}
+              >
+                <Text style={styles.confirmButtonText}>Confirm Location</Text>
+              </Pressable>
+            </View>
+          </View>         
+      </Modal>  
     </View>
   );
 }
@@ -194,10 +414,6 @@ const styles = StyleSheet.create({
     borderColor: "#e2e8f0",
     overflow: "hidden",
   },
-  picker: {
-    height: 100,
-    color: "#11181c",
-  },
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -225,7 +441,7 @@ const styles = StyleSheet.create({
   },
   checkboxRow: {
     flexDirection: "row",
-    alignItems: "center"
+    alignItems: "center",
   },
   mapButton: {
     flexDirection: "row",
@@ -239,6 +455,20 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     color: "#22d3ee",
     fontWeight: "600",
+  },
+  locationStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: "#d1fae5",
+    borderRadius: 8,
+  },
+  locationStatusText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: "#065f46",
+    fontWeight: "500",
   },
   dateButton: {
     flexDirection: "row",
@@ -273,6 +503,70 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   postButtonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  // Map Modal Styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  mapHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+  },
+  mapHeaderTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#11181c",
+  },
+  map: {
+    flex: 1,
+  },
+  mapInstructions: {
+    position: "absolute",
+    top: 120,
+    left: 20,
+    right: 20,
+    backgroundColor: "#fff",
+    padding: 12,
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  mapInstructionsText: {
+    fontSize: 14,
+    color: "#6b7280",
+    textAlign: "center",
+  },
+  mapFooter: {
+    padding: 20,
+    paddingBottom: 40,
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+  },
+  confirmButton: {
+    backgroundColor: "#15b1c9ff",
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: "center",
+  },
+  confirmButtonDisabled: {
+    backgroundColor: "#cbd5e1",
+  },
+  confirmButtonText: {
     color: "#fff",
     fontSize: 18,
     fontWeight: "700",
