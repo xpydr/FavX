@@ -2,10 +2,11 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from '@react-native-picker/picker';
 import * as ExpoLocation from 'expo-location';
 import { Calendar, ChevronLeft, MapPin, Search, X } from "lucide-react-native";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -42,6 +43,7 @@ export default function PostFavourScreen() {
     longitudeDelta: 0.0421,
   });
   const [loadingLocation, setLoadingLocation] = useState(false);
+  const mapRef = useRef<MapView>(null);
 
   const categories = ["Errands", "Tutoring", "Cleaning", "Delivery", "Repair", "Other"];
 
@@ -157,21 +159,29 @@ export default function PostFavourScreen() {
       return;
     }
 
+    Keyboard.dismiss(); // close keyboard
+
     try{
       const geocoded = await ExpoLocation.geocodeAsync(searchQuery);
 
       if(geocoded.length > 0){
         const location = geocoded[0];
-        setSelectedLocation({
+        const newLocation = {
           latitude: location.latitude,
           longitude: location.longitude
-        });
-        setMapRegion({
-          latitude: location.latitude,
-          longitude: location.longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        });
+        };
+
+        setSelectedLocation(newLocation);
+
+        if (mapRef.current){
+          mapRef.current.animateToRegion({
+            latitude: location.latitude,
+            longitude: location.longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          }, 1000);
+        }
+
       }else{
         Alert.alert("Not Found", "Could not find the specified address. Please try again.");
       }
@@ -418,9 +428,10 @@ export default function PostFavourScreen() {
               <Text style={styles.searchButtonText}>Search</Text>
             </Pressable>
             </View>
-            
+
             {/* Map */}
             <MapView
+              ref={mapRef}
               provider={PROVIDER_GOOGLE}
               style={styles.map}
               initialRegion={mapRegion}
