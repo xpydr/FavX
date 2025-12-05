@@ -418,7 +418,7 @@ export default function PostFavourScreen() {
               <Text style={styles.searchButtonText}>Search</Text>
             </Pressable>
             </View>
-
+            
             {/* Map */}
             <MapView
               provider={PROVIDER_GOOGLE}
@@ -439,13 +439,6 @@ export default function PostFavourScreen() {
               )}
             </MapView>
 
-            {/* Map Instructions */}
-            <View style={styles.mapInstructions}>
-              <Text style={styles.mapInstructionsText}>
-                Tap anywhere on the map to set your location
-              </Text>
-            </View>
-
             {/* Confirm Button */}
             <View style={styles.mapFooter}>
               <Pressable
@@ -459,7 +452,8 @@ export default function PostFavourScreen() {
                 <Text style={styles.confirmButtonText}>Confirm Location</Text>
               </Pressable>
             </View>
-          </View>         
+          </View>
+        </KeyboardAvoidingView>         
       </Modal>  
     </View>
   );
