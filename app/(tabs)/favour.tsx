@@ -28,7 +28,7 @@ export default function PostFavourScreen() {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("Errands");
   const [description, setDescription] = useState("");
-  const [useMyLocation, setUseMyLocation] = useState(true);
+  const [useMyLocation, setUseMyLocation] = useState(false);
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
@@ -50,6 +50,19 @@ export default function PostFavourScreen() {
       year: "numeric",
     });
   };
+
+  // format address from geocoded data
+  const formatAddress = (addressData: ExpoLocation.LocationGeocodedAddress) => {
+
+    const parts = [];
+    if(addressData.streetNumber) parts.push(addressData.streetNumber);
+    if(addressData.street) parts.push(addressData.street);
+    if(addressData.city) parts.push(addressData.city);
+    if(addressData.region) parts.push(addressData.region);
+
+    return parts.join(", ") || "Selected Location";
+
+  }
 
   // get user location (using expo-location)
   const getCurrentLocation = async () => {
@@ -76,9 +89,16 @@ export default function PostFavourScreen() {
         accuracy: ExpoLocation.Accuracy.High
       });
 
+      // get address from coordinates
+      const address = await ExpoLocation.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude
+      });
+
       const userLocation: LocationType = {
         latitude: location.coords.latitude,
-        longitude: location.coords.longitude        
+        longitude: location.coords.longitude,
+        address: address[0] ? formatAddress(address[0]) : undefined        
       };
 
       setSelectedLocation(userLocation);
@@ -129,11 +149,28 @@ export default function PostFavourScreen() {
   }
 
   // confirm location from map
-  const confirmMapLocation = () => {
-    if(selectedLocation){
+  const confirmMapLocation = async () => {
+
+    if (selectedLocation){
+      
+      // get address for selected location
+      try{
+        const address = await ExpoLocation.reverseGeocodeAsync({
+          latitude: selectedLocation.latitude,
+          longitude: selectedLocation.longitude
+        });
+
+        setSelectedLocation({
+          ...selectedLocation,
+          address: address[0] ? formatAddress(address[0]) : undefined        
+        });
+      }catch (error){
+        console.log("Could not get address for selected location:", error);
+      }
+
       setUseMyLocation(false);
       setShowMapModal(false);
-      Alert.alert("Success", "Location has been set!");
+      Alert.alert("Success", "Location has been set on the map!");
     }else{
       Alert.alert("Error", "Please select a location on the map.");
     }
@@ -178,7 +215,7 @@ export default function PostFavourScreen() {
 
     // validate location is set before posting
     if(!selectedLocation){
-      Alert.alert("Missing Locaiton", "Please set location for your favour request.");
+      Alert.alert("Missing Location", "Please set location for your favour request.");
       return;
     }
 
@@ -268,7 +305,7 @@ export default function PostFavourScreen() {
             <View style={styles.locationStatus}>
               <MapPin size={16} color="#10b981" />
               <Text style={styles.locationStatusText}>
-                Location Set: {selectedLocation.latitude.toFixed(4)}, {selectedLocation.longitude.toFixed(4)}
+                {selectedLocation.address || `${selectedLocation.latitude.toFixed(4)}, ${selectedLocation.longitude.toFixed(4)}`}
               </Text>
             </View>
           )}
@@ -338,7 +375,7 @@ export default function PostFavourScreen() {
               )}
             </MapView>
 
-            {/* MapInstructions */}
+            {/* Map Instructions */}
             <View style={styles.mapInstructions}>
               <Text style={styles.mapInstructionsText}>
                 Tap anywhere on the map to set your location
