@@ -1,11 +1,12 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from '@react-native-picker/picker';
 import * as ExpoLocation from 'expo-location';
-import { Calendar, ChevronLeft, MapPin, X } from "lucide-react-native";
+import { Calendar, ChevronLeft, MapPin, Search, X } from "lucide-react-native";
 import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -33,6 +34,7 @@ export default function PostFavourScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<LocationType | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [mapRegion, setMapRegion] = useState({
     latitude: 37.78825,
     longitude: -122.4324,
@@ -148,9 +150,39 @@ export default function PostFavourScreen() {
     });
   }
 
+  // handle address search
+  const handleSearchAddress = async () => {
+    if(!searchQuery.trim()){
+      Alert.alert("Error", "Please enter an address to search.");
+      return;
+    }
+
+    try{
+      const geocoded = await ExpoLocation.geocodeAsync(searchQuery);
+
+      if(geocoded.length > 0){
+        const location = geocoded[0];
+        setSelectedLocation({
+          latitude: location.latitude,
+          longitude: location.longitude
+        });
+        setMapRegion({
+          latitude: location.latitude,
+          longitude: location.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+      }else{
+        Alert.alert("Not Found", "Could not find the specified address. Please try again.");
+      }
+    }catch (error){
+      console.error("Error geocoding address:", error);
+      Alert.alert("Error", "An error occurred while searching for the address. Please try again.");
+    }
+  }
+
   // confirm location from map
   const confirmMapLocation = async () => {
-
     if (selectedLocation){
       
       // get address for selected location
@@ -346,13 +378,45 @@ export default function PostFavourScreen() {
 
       {/* Map Modal */}
       <Modal visible={showMapModal} animationType="slide" onRequestClose={() => setShowMapModal(false)}>
+        <KeyboardAvoidingView 
+          style={styles.modalContainer}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
           <View style={styles.modalContainer}>
+            
             {/* Modal Header */}
             <View style={styles.mapHeader}>
               <Text style={styles.mapHeaderTitle}>Select Location</Text>
               <Pressable onPress={() => setShowMapModal(false)} hitSlop={20}>
                 <X size={24} color="#11181c" />
               </Pressable>
+            </View>
+
+            {/* Map Search Bar */}
+            <View style={styles.searchContainer}>
+            <View style={styles.searchBar}>
+              <Search size={20} color="#9ca3af" />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search for an address..."
+                placeholderTextColor="#9ca3af"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onSubmitEditing={handleSearchAddress}
+                returnKeyType="search"
+              />
+              {searchQuery.length > 0 && (
+                <Pressable onPress={() => setSearchQuery("")} hitSlop={10}>
+                  <X size={20} color="#9ca3af" />
+                </Pressable>
+              )}
+            </View>
+            <Pressable 
+              style={styles.searchButton}
+              onPress={handleSearchAddress}
+            >
+              <Text style={styles.searchButtonText}>Search</Text>
+            </Pressable>
             </View>
 
             {/* Map */}
@@ -544,7 +608,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
   },
-  // Map Modal Styles
   modalContainer: {
     flex: 1,
     backgroundColor: "#fff",
@@ -607,5 +670,41 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 18,
     fontWeight: "700",
+  },
+  searchContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+    gap: 8,
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f3f4f6",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: "#11181c",
+  },
+  searchButton: {
+    backgroundColor: "#15b1c9ff",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+    justifyContent: "center",
+  },
+  searchButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
