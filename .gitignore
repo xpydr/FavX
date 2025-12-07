@@ -4,7 +4,6 @@
 node_modules/
 package-lock.json
 
-
 # Expo
 .expo/
 dist/
@@ -45,3 +44,7 @@ app-example
 /android
 package-lock.json
 package-lock.json
+
+# IDE
+.vscode/
+.idea/
