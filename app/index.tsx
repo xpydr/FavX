@@ -7,10 +7,13 @@ export default function Home() {
 
   useEffect(() => {
     const testConnection = async () => {
-      const { data, error } = await supabase.from("_test").select("*").limit(1);
+     const { data, error } = await supabase
+       .from("profiles")
+       .select("*")
+       .limit(1);
 
       if (error) {
-        setStatus("Supabase connected ✅ (No table yet)");
+        setStatus("Connection failed ❌");
       } else {
         setStatus("Supabase connected ✅");
       }
