@@ -63,6 +63,7 @@ export default function Signup(){
                     <Text style={styles.title}>Create Account</Text>
                     <Text style={styles.helper}>Join the community!</Text>
 
+                    {/* Full Name */}
                     <View style={styles.inputWrap}>
                         <TextInput
                             value={fullname}
@@ -74,15 +75,114 @@ export default function Signup(){
                         />
                     </View>
 
-                
+                    {/* Username */}
+                    <View style={styles.inputWrap}>
+                        <TextInput
+                            value={username}
+                            onChangeText={setUsername}
+                            placeholder="Username"
+                            placeholderTextColor="#A7B4BE"
+                            autoCapitalize="none"
+                            style={styles.input}
+                        />
+                    </View>
+
+                    {/* Email */}
+                    <View style={styles.inputWrap}>
+                        <TextInput
+                            value={email}
+                            onChangeText={setEmail}
+                            placeholder="Email"
+                            placeholderTextColor="#A7B4BE"
+                            autoCapitalize="none"
+                            keyboardType="email-address"
+                            style={styles.input}
+                        />
+                    </View>
+
+                    {/* Password */}
+                    <View style={styles.inputWrap}>
+                        <TextInput
+                            value={password}
+                            onChangeText={setPassword}
+                            placeholder="Password"
+                            placeholderTextColor="#A7B4BE"
+                            secureTextEntry={!showPass}
+                            style={[styles.input, { paddingRight: 44 }]}
+                        />
+                        <Pressable onPress={() => setShowPass((v) => !v)} style={styles.eye}>
+                            <Ionicons
+                                name={showPass ? "eye-outline" : "eye-off-outline"}
+                                size={18}
+                                color="#9AA7B2"
+                            />
+                        </Pressable>
+                    </View>
+
+                    {/* Confirm Password */}
+                    <View style={styles.inputWrap}>
+                        <TextInput
+                            value={confirmPassword}
+                            onChangeText={setConfirmPassword}
+                            placeholder="Confirm Password"
+                            placeholderTextColor="#A7B4BE"
+                            secureTextEntry={!showConfirmPass}
+                            style={[styles.input, { paddingRight: 44 }]}
+                        />
+                        <Pressable onPress={() => setShowConfirmPass((v) => !v)} style={styles.eye}>
+                            <Ionicons
+                                name={showConfirmPass ? "eye-outline" : "eye-off-outline"}
+                                size={18}
+                                color="#9AA7B2"
+                            />
+                        </Pressable>
+                    </View>
+
+                    {/* Signup Button */}
+                    <TouchableOpacity
+                        activeOpacity={0.9}
+                        style={styles.signupBtn}
+                        onPress={() => router.replace("/(tabs)")}
+                    >
+                        <LinearGradient
+                            colors={["#67CBD6", "#3BA8C1"]}
+                            start={{ x: 0.05, y: 0 }}
+                            end={{ x: 0.95, y: 1 }}
+                            style={styles.signupBtnInner}
+                        >
+                            <Text style={styles.signupBtnText}>Sign Up</Text>
+                        </LinearGradient>
+                    </TouchableOpacity>
+
+                    <Text style={styles.or}>Or sign up with</Text>
+
+                    <View style={styles.socialRow}>
+                        <TouchableOpacity style={styles.socialBtn} activeOpacity={0.85}>
+                            <Ionicons name="logo-google" size={18} color="#111827" />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.socialBtn} activeOpacity={0.85}>
+                            <Ionicons name="logo-facebook" size={18} color="#111827" />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.socialBtn} activeOpacity={0.85}>
+                            <Ionicons name="logo-apple" size={18} color="#111827" />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.socialBtn} activeOpacity={0.85}>
+                            <Ionicons name="call-outline" size={18} color="#111827" />
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.bottom}>
+                        <Text style={styles.bottomText}>Already have an account?</Text>
+                        <TouchableOpacity activeOpacity={0.85} onPress={() => router.back()}>
+                            <Text style={styles.login}>Log In</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                <View style={styles.scrollPad} />
             </ScrollView>
         </LinearGradient>
-            
-
-
-    )
-
-    
+    );
 }
 
 const styles = StyleSheet.create({})
