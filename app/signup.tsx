@@ -36,10 +36,53 @@ export default function Signup(){
 
     return (
 
-        
+        <LinearGradient
+            colors={["#A9DDE8", "#2F7FA1"]}
+            start={{ x: 0.2, y: 0 }}
+            end={{ x: 0.9, y: 1 }}
+            style={styles.bg}
+        >
+            <ScrollView 
+                contentContainerStyle={styles.scroll}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
+                {/* Header */}
+                <View style={styles.header}>
+                    <View style={styles.heartContainer}>
+                        <FavXHeart width={80} height={80} />
+                    </View>
+                    <Text style={styles.brand}>FavX</Text>
+                    <Text style={styles.sub1}>Favour for favour.</Text>
+                    <Text style={styles.sub1}>Community made <Text style={{ fontWeight: "bold" }}>stronger</Text></Text>
+                    <View style={styles.underline} />
+                </View>
+
+                {/* Card */}
+                <View style={[styles.card, { width: cardWidth }]}>
+                    <Text style={styles.title}>Create Account</Text>
+                    <Text style={styles.helper}>Join the community!</Text>
+
+                    <View style={styles.inputWrap}>
+                        <TextInput
+                            value={fullname}
+                            onChangeText={setFullname}
+                            placeholder="Full Name"
+                            placeholderTextColor="#A7B4BE"
+                            autoCapitalize="words"
+                            style={styles.input}
+                        />
+                    </View>
+
+                
+            </ScrollView>
+        </LinearGradient>
+            
 
 
     )
 
-
+    
 }
+
+const styles = StyleSheet.create({})
