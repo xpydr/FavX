@@ -3,6 +3,7 @@ import { Picker } from '@react-native-picker/picker';
 import * as ExpoLocation from 'expo-location';
 import { Calendar, ChevronLeft, MapPin, Search, X } from "lucide-react-native";
 import { useRef, useState } from "react";
+import { createFavour } from "../../services/favour";
 import {
   ActivityIndicator,
   Alert,
@@ -17,19 +18,19 @@ import {
   TextInput,
   View
 } from "react-native";
-import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
-
 interface LocationType {
   latitude: number;
   longitude: number;
   address?: string;
 }
 
-export default function PostFavourScreen(){
-
+export default function PostFavourScreen() {
+    const user = { id: "33333333-3333-3333-3333-333333333333" }; // Mock user for demonstration purposes - useAuth() in later development
     const [title, setTitle] = useState("");
     const [category, setCategory] = useState("Errands");
+    const [type, setType] = useState("");
     const [description, setDescription] = useState("");
+    const [creditReward, setCreditReward] = useState("0");
     const [useMyLocation, setUseMyLocation] = useState(false);
     const [date, setDate] = useState(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -43,9 +44,43 @@ export default function PostFavourScreen(){
         longitudeDelta: 0.0421,
     });
     const [loadingLocation, setLoadingLocation] = useState(false);
-    const mapRef = useRef<MapView>(null);
+    const [submitting, setSubmitting] = useState(false);
+    const [MapView, setMapView] = useState<any>(null);
+    const [Marker, setMarker] = useState<any>(null);
+    const [PROVIDER_GOOGLE, setPROVIDER_GOOGLE] = useState<any>(null);
+    const [mapsLoaded, setMapsLoaded] = useState(false);
+    const mapRef = useRef<any>(null);
+
+    // Load react-native-maps only when map modal is opened
+    const loadMapsModule = () => {
+        if (mapsLoaded || MapView) return; // Already loaded
+        
+        try {
+            const maps = require("react-native-maps");
+            
+            if (maps) {
+                const MapComponent = maps?.default || maps;
+                const MarkerComponent = maps?.Marker;
+                const ProviderGoogle = maps?.PROVIDER_GOOGLE;
+                
+                if (MapComponent) {
+                    setMapView(() => MapComponent);
+                }
+                if (MarkerComponent) {
+                    setMarker(() => MarkerComponent);
+                }
+                if (ProviderGoogle !== undefined) {
+                    setPROVIDER_GOOGLE(ProviderGoogle);
+                }
+                setMapsLoaded(true);
+            }
+        } catch (e: any) {
+            console.warn("react-native-maps not available:", e?.message || e);
+            setMapsLoaded(true); // Mark as attempted to avoid retrying
+        }
+    };
   
-    const categories = ["Errands", "Tutoring", "Cleaning", "Delivery", "Repair", "Other"];
+    const categories = ["Errands", "Tutoring", "Cleaning", "Delivery", "Repair", "Moving", "Tech", "Other"];
 
     const formatDate = (date: Date) => {
         return date.toLocaleDateString("en-GB", {
@@ -210,6 +245,9 @@ export default function PostFavourScreen(){
 
     // open map modal
     const openMapModal = async () => {
+        // Try to load maps module when modal opens
+        loadMapsModule();
+        
         setShowMapModal(true);
 
         // if no location set, center map on user location
@@ -229,7 +267,7 @@ export default function PostFavourScreen(){
                     });
                 }
             }catch (error){
-                console.log("Cold not get location for map centering:", error);
+                console.log("Could not get location for map centering:", error);
             }
         }else{
             // center map on selected location
@@ -242,16 +280,81 @@ export default function PostFavourScreen(){
         }
     }
 
-    const handlePost = () => {
+    const handlePost = async () => {
+        if (!user?.id) {
+            Alert.alert("Sign In Required", "Please sign in to post a favour.");
+            return;
+        }
 
-        // validate location is set before posting
-        if(!selectedLocation){
+        if (!title.trim()) {
+            Alert.alert("Missing Title", "Please enter a title for your favour request.");
+            return;
+        }
+
+        if (!description.trim()) {
+            Alert.alert("Missing Description", "Please enter a description for your favour request.");
+            return;
+        }
+
+        if (!type) {
+            Alert.alert("Missing Type", "Please select a type (Request or Offer) for your favour.");
+            return;
+        }
+
+        if (!selectedLocation) {
             Alert.alert("Missing Location", "Please set location for your favour request.");
             return;
         }
 
-        // TODO: Send to backend / show success
-       return;
+        setSubmitting(true);
+
+        try {
+            const locationString = selectedLocation.address
+                ? selectedLocation.address
+                : `${selectedLocation.latitude}, ${selectedLocation.longitude}`;
+
+            await createFavour({
+                requester_id: user.id,
+                category: category,
+                title: title.trim(),
+                description: description.trim(),
+                type: type,
+                location: locationString,
+                latitude: String(selectedLocation.latitude),
+                longitude: String(selectedLocation.longitude),
+                status: "posted",
+                credit_reward: creditReward.trim() || "0",
+            });
+
+            Alert.alert(
+                "Success",
+                "Your favour request has been posted successfully!",
+                [
+                    {
+                        text: "OK",
+                        onPress: () => {
+                            setTitle("");
+                            setDescription("");
+                            setCategory("Errands");
+                            setType("");
+                            setCreditReward("0");
+                            setSelectedLocation(null);
+                            setUseMyLocation(false);
+                            setDate(new Date());
+                        }
+                    }
+                ]
+            );
+        } catch (error: any) {
+            console.error("Error creating favour:", error);
+            Alert.alert(
+                "Error",
+                error?.message || "Failed to post your favour request. Please try again.",
+                [{ text: "OK" }]
+            );
+        } finally {
+            setSubmitting(false);
+        }
     }
     
   return (
@@ -270,7 +373,7 @@ export default function PostFavourScreen(){
           {/* Title */}
           <Text style={styles.label}>Favour Title</Text>
           <TextInput
-            placeholder="What do you need?"
+            placeholder="Enter a title for your favour"
             value={title}
             onChangeText={setTitle}
             style={styles.input}
@@ -292,6 +395,20 @@ export default function PostFavourScreen(){
             </Picker>
           </View>
 
+          {/* Type */}
+          <Text style={styles.label}>Type</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={type}
+              onValueChange={(itemValue) => setType(itemValue)}
+              dropdownIconColor="#15b1c9ff"
+              mode="dropdown"
+            >
+              <Picker.Item label="Request" value="request" />
+              <Picker.Item label="Offer" value="offer" />
+            </Picker>
+          </View>
+
           {/* Description */}
           <Text style={styles.label}>Description</Text>
           <TextInput
@@ -301,6 +418,17 @@ export default function PostFavourScreen(){
             multiline
             numberOfLines={4}
             style={[styles.input, styles.textArea]}
+            placeholderTextColor="#9ca3af"
+          />
+
+          {/* Credit reward */}
+          <Text style={styles.label}>Credit reward</Text>
+          <TextInput
+            placeholder="0"
+            value={creditReward}
+            onChangeText={setCreditReward}
+            keyboardType="numeric"
+            style={styles.input}
             placeholderTextColor="#9ca3af"
           />
 
@@ -370,8 +498,16 @@ export default function PostFavourScreen(){
 
       {/* Post Button */}
       <View style={styles.footer}>
-        <Pressable style={styles.postButton} onPress={handlePost}>
-          <Text style={styles.postButtonText}>Post Favour</Text>
+        <Pressable 
+          style={[styles.postButton, submitting && styles.postButtonDisabled]} 
+          onPress={handlePost}
+          disabled={submitting}
+        >
+          {submitting ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.postButtonText}>Post Favour</Text>
+          )}
         </Pressable>
       </View>
 
@@ -419,25 +555,33 @@ export default function PostFavourScreen(){
             </View>
 
             {/* Map */}
-            <MapView
-              ref={mapRef}
-              provider={PROVIDER_GOOGLE}
-              style={styles.map}
-              initialRegion={mapRegion}
-              onPress={handleMapPress}
-              showsUserLocation
-              showsMyLocationButton>
+            {MapView ? (
+              <MapView
+                ref={mapRef}
+                {...(PROVIDER_GOOGLE && { provider: PROVIDER_GOOGLE })}
+                style={styles.map}
+                initialRegion={mapRegion}
+                onPress={handleMapPress}
+                showsUserLocation
+                showsMyLocationButton>
 
-              {selectedLocation && (
-                <Marker
-                  coordinate={{
-                    latitude: selectedLocation.latitude,
-                    longitude: selectedLocation.longitude
-                  }}
-                  title="Selected Location"
-                />
-              )}
-            </MapView>
+                {selectedLocation && Marker && (
+                  <Marker
+                    coordinate={{
+                      latitude: selectedLocation.latitude,
+                      longitude: selectedLocation.longitude
+                    }}
+                    title="Selected Location"
+                  />
+                )}
+              </MapView>
+            ) : (
+              <View style={[styles.map, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+                <Text style={{ color: '#6b7280', textAlign: 'center', fontSize: 14 }}>
+                  Map unavailable.
+                </Text>
+              </View>
+            )}
 
             {/* Confirm Button */}
             <View style={styles.mapFooter}>
@@ -596,6 +740,10 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: "center",
+  },
+  postButtonDisabled: {
+    backgroundColor: "#cbd5e1",
+    opacity: 0.7,
   },
   postButtonText: {
     color: "#fff",
