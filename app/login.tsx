@@ -41,6 +41,7 @@ export default function Login() {
     return Math.min(max, width - sidePadding * 2);
   }, [width]);
 
+  // this is just a placeholder function to demonstrate error handling in the form
   const handleLogin = () => {
 
     // clear previous errors

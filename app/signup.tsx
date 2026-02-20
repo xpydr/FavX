@@ -16,8 +16,12 @@ import { router } from "expo-router";
 
 import FavXHeart from "../assets/icons/favx-heart.svg";
 
+// dummy account for testing uniqueness validation
+const TAKEN_USERNAMES = ["dummy123"];
+
 export default function Signup(){
 
+    // form states
     const [fullname, setFullname] = useState("");
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
@@ -26,13 +30,81 @@ export default function Signup(){
     const [showPass, setShowPass] = useState(false);
     const [showConfirmPass, setShowConfirmPass] = useState(false);
 
+    const [errors, setErrors] = useState<Record<string, string>>({});
+
     const { width } = Dimensions.get("window");
 
+    // calculate card width based on screen width
     const cardWidth = useMemo(() => {
         const max = 390;
         const sidePadding = 26;
         return Math.min(max, width - sidePadding * 2);
     }, [width]);
+
+    // helper to clear error for a specific field when user starts typing
+    const clearError = (field: string) => {
+        if (errors[field]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[field];
+                return next;
+            });
+        }
+    };
+
+    // for demo purposes, this just validates the fields and shows errors — no actual account creation
+    const handleSignup = () => {
+        const newErrors: Record<string, string> = {};
+
+        // full name
+        if (!fullname.trim()) {
+            newErrors.fullName = "Full name is required.";
+        }
+
+        // username
+        if (!username.trim()) {
+            newErrors.username = "Username is required.";
+        } else if (TAKEN_USERNAMES.includes(username.trim().toLowerCase())) {
+            newErrors.username = "That username is already taken.";
+        }
+
+        // email — must contain @ and a dot after it
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email.trim()) {
+            newErrors.email = "Email is required.";
+        } else if (!emailRegex.test(email.trim())) {
+            newErrors.email = "Please enter a valid email (e.g. name@site.com).";
+        }
+
+        // password — min 6 chars, at least one number, at least one symbol
+        const hasNumber = /\d/.test(password);
+        const hasSymbol = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password);
+        if (!password) {
+            newErrors.password = "Password is required.";
+        } else if (password.length < 6) {
+            newErrors.password = "Password must be at least 6 characters.";
+        } else if (!hasNumber) {
+            newErrors.password = "Password must include at least one number.";
+        } else if (!hasSymbol) {
+            newErrors.password = "Password must include at least one symbol.";
+        }
+
+        // confirm password
+        if (!confirmPassword) {
+            newErrors.confirmPassword = "Please confirm your password.";
+        } else if (confirmPassword !== password) {
+            newErrors.confirmPassword = "Passwords do not match.";
+        }
+
+        // if there are errors, show them and stop
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
+        // all good — redirect to login
+        router.replace("/login");
+    };
 
     return (
 
@@ -64,34 +136,40 @@ export default function Signup(){
                     <Text style={styles.helper}>Join the community!</Text>
 
                     {/* Full Name */}
-                    <View style={styles.inputWrap}>
+                    <View style={[styles.inputWrap, errors.fullname ? styles.inputWrapError : null]}>
                         <TextInput
                             value={fullname}
-                            onChangeText={setFullname}
+                            onChangeText={(v) => {setFullname(v); clearError("fullname")}}
                             placeholder="Full Name"
                             placeholderTextColor="#A7B4BE"
                             autoCapitalize="words"
                             style={styles.input}
                         />
                     </View>
+                    {errors.fullname ? (
+                        <Text style={styles.fieldError}>{errors.fullname}</Text>
+                    ) : null}
 
                     {/* Username */}
-                    <View style={styles.inputWrap}>
+                    <View style={[styles.inputWrap, errors.username ? styles.inputWrapError : null]}>
                         <TextInput
                             value={username}
-                            onChangeText={setUsername}
+                            onChangeText={(v) => {setUsername(v); clearError("username")}}
                             placeholder="Username"
                             placeholderTextColor="#A7B4BE"
                             autoCapitalize="none"
                             style={styles.input}
                         />
                     </View>
+                    {errors.username ? (
+                        <Text style={styles.fieldError}>{errors.username}</Text>
+                    ) : null}
 
                     {/* Email */}
-                    <View style={styles.inputWrap}>
+                    <View style={[styles.inputWrap, errors.email ? styles.inputWrapError : null]}>
                         <TextInput
                             value={email}
-                            onChangeText={setEmail}
+                            onChangeText={(v) => {setEmail(v); clearError("email")}}
                             placeholder="Email"
                             placeholderTextColor="#A7B4BE"
                             autoCapitalize="none"
@@ -99,12 +177,15 @@ export default function Signup(){
                             style={styles.input}
                         />
                     </View>
+                    {errors.email ? (
+                        <Text style={styles.fieldError}>{errors.email}</Text>
+                    ) : null}
 
                     {/* Password */}
-                    <View style={styles.inputWrap}>
+                    <View style={[styles.inputWrap, errors.password ? styles.inputWrapError : null]}>
                         <TextInput
                             value={password}
-                            onChangeText={setPassword}
+                            onChangeText={(v) => {setPassword(v); clearError("password")}}
                             placeholder="Password"
                             placeholderTextColor="#A7B4BE"
                             secureTextEntry={!showPass}
@@ -118,12 +199,15 @@ export default function Signup(){
                             />
                         </Pressable>
                     </View>
+                    {errors.password ? (
+                        <Text style={styles.fieldError}>{errors.password}</Text>
+                    ) : null}
 
                     {/* Confirm Password */}
-                    <View style={styles.inputWrap}>
+                    <View style={[styles.inputWrap, errors.confirmPassword ? styles.inputWrapError : null]}>
                         <TextInput
                             value={confirmPassword}
-                            onChangeText={setConfirmPassword}
+                            onChangeText={(v) => {setConfirmPassword(v); clearError("confirmPassword")}}
                             placeholder="Confirm Password"
                             placeholderTextColor="#A7B4BE"
                             secureTextEntry={!showConfirmPass}
@@ -137,6 +221,9 @@ export default function Signup(){
                             />
                         </Pressable>
                     </View>
+                    {errors.confirmPassword ? (
+                        <Text style={styles.fieldError}>{errors.confirmPassword}</Text>
+                    ) : null}
 
                     {/* Signup Button */}
                     <TouchableOpacity
@@ -276,6 +363,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginTop: 10,
   },
+  inputWrapError: {
+    borderColor: "#D94F4F",
+    backgroundColor: "#FEF2F2",
+  },
   input: {
     fontSize: 13.5,
     color: "#111827",
@@ -288,6 +379,12 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: "center",
     justifyContent: "center",
+  },
+  fieldError: {
+    fontSize: 11,
+    color: "#D94F4F",
+    marginTop: 3,
+    marginLeft: 4,
   },
 
   signupBtn: { marginTop: 16, borderRadius: 12, overflow: "hidden" },
