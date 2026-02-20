@@ -16,11 +16,22 @@ import { router } from "expo-router";
 
 import FavXHeart from "../assets/icons/favx-heart.svg"; 
 
+// dummy account for testing, no real auth logic implemented yet
+const DUMMY_USER = {
+  email: "dummy@dummy.com",
+  username: "dummy123",
+  password: "password123!"
+}
+
 export default function Login() {
   const [email, setEmail] = useState("user@testmail.com");
   const [password, setPassword] = useState("••••••••••••");
   const [remember, setRemember] = useState(false);
   const [showPass, setShowPass] = useState(false);
+
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [generalError, setGeneralError] = useState("");
 
   const { width } = Dimensions.get("window");
 
@@ -29,6 +40,40 @@ export default function Login() {
     const sidePadding = 26;
     return Math.min(max, width - sidePadding * 2);
   }, [width]);
+
+  const handleLogin = () => {
+
+    // clear previous errors
+    setEmailError("");
+    setPasswordError("");
+    setGeneralError("");
+
+    let hasError = false;
+
+    // basic validation
+    if(!email.trim()){
+      setEmailError("Email is required.");
+      hasError = true;
+    }
+
+    if(!password){
+      setPasswordError("Password is required.");
+      hasError = true;
+    }
+
+    if(hasError) return;
+
+    // fake auth check against dummy user
+    const emailMatch = email.trim().toLowerCase() === DUMMY_USER.email;
+    const passwordMatch = password === DUMMY_USER.password;
+
+    if(!emailMatch || !passwordMatch){
+      setGeneralError("Invalid email or password.");
+      return;
+    }
+
+    router.replace("/(tabs)"); // fake success for now
+  }
 
   return (
     <LinearGradient
@@ -54,10 +99,25 @@ export default function Login() {
         <Text style={styles.title}>Login</Text>
         <Text style={styles.helper}>Enter your email and password to log in</Text>
 
-        <View style={styles.inputWrap}>
+        {/* General error message */}
+        {generalError ? (
+          <View style={styles.generalErrorWrap}>
+            <Ionicons name="alert-circle-outline" size={14} color="#D94F4F" />
+            <Text style={styles.generalErrorText}>{generalError}</Text>
+          </View>
+        ) : null}
+
+        <View style={[
+          styles.inputWrap,
+          emailError ? styles.inputWrapError : null
+        ]}>
           <TextInput
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(v) => {
+              setEmail(v);
+              if (emailError) setEmailError("");
+              if (generalError) setGeneralError("");
+            }}
             placeholder="Email"
             placeholderTextColor="#A7B4BE"
             autoCapitalize="none"
@@ -65,11 +125,19 @@ export default function Login() {
             style={styles.input}
           />
         </View>
+        {emailError ? <Text style={styles.fieldError}>{emailError}</Text> : null}
 
-        <View style={styles.inputWrap}>
+        <View style={[
+          styles.inputWrap,
+          passwordError ? styles.inputWrapError : null
+        ]}>
           <TextInput
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(v) => {
+              setPassword(v);
+              if (passwordError) setPasswordError("");
+              if (generalError) setGeneralError("");
+            }}
             placeholder="Password"
             placeholderTextColor="#A7B4BE"
             secureTextEntry={!showPass}
@@ -83,6 +151,7 @@ export default function Login() {
             />
           </Pressable>
         </View>
+        {passwordError ? <Text style={styles.fieldError}>{passwordError}</Text> : null}
 
         <View style={styles.row}>
           <TouchableOpacity
@@ -137,7 +206,7 @@ export default function Login() {
 
         <View style={styles.bottom}>
           <Text style={styles.bottomText}>Don’t have an account?</Text>
-          <TouchableOpacity activeOpacity={0.85}>
+          <TouchableOpacity activeOpacity={0.85} onPress={() => router.push("/signup")}>
             <Text style={styles.signup}> Sign Up</Text>
           </TouchableOpacity>
         </View>
@@ -220,6 +289,24 @@ const styles = StyleSheet.create({
     color: "#8A96A3",
   },
 
+  generalErrorWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#FEF2F2",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+  },
+  generalErrorText: {
+    fontSize: 12,
+    color: "#D94F4F",
+    flex: 1,
+  },
+
   inputWrap: {
     height: 44,
     borderRadius: 10,
@@ -235,6 +322,10 @@ const styles = StyleSheet.create({
     color: "#111827",
     paddingVertical: Platform.OS === "android" ? 6 : 8,
   },
+  inputWrapError: {
+    borderColor: "#D94F4F",
+    backgroundColor: "#FEF2F2",
+  },
   eye: {
     position: "absolute",
     right: 12,
@@ -242,6 +333,12 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: "center",
     justifyContent: "center",
+  },
+  fieldError: {
+    fontSize: 11,
+    color: "#D94F4F",
+    marginTop: 3,
+    marginLeft: 4,
   },
 
   row: {
