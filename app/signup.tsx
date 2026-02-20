@@ -185,4 +185,146 @@ export default function Signup(){
     );
 }
 
-const styles = StyleSheet.create({})
+const styles = StyleSheet.create({
+
+  bg: { flex: 1 },
+
+  scroll: {
+    alignItems: "center",
+    flexGrow: 1,
+  },
+
+  header: {
+    width: "100%",
+    alignItems: "center",
+    paddingTop: Platform.OS === "android" ? 52 : 62,
+    paddingBottom: 18,
+  },
+
+  heartContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+    backgroundColor: "rgba(255,255,255,0.10)",
+  },
+
+  brand: {
+    fontSize: 44,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: 0.2,
+    marginBottom: 6,
+  },
+
+  sub1: { fontSize: 17, color: "rgba(255,255,255,0.92)" },
+
+  underline: {
+    position: "absolute",
+    left: -50,
+    right: 0.1,
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.88)",
+    bottom: -1,
+    transform: [
+      { translateX: 100 },
+      { translateY: -8 },
+      { rotate: "-5deg" },
+      { scaleX: 0.1 },
+      { scaleY: 0.4 },
+    ],
+  },
+
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.14,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
+    marginTop: 24,
+  },
+
+  title: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#3B3B3B",
+    textAlign: "center",
+  },
+  helper: {
+    marginTop: 8,
+    marginBottom: 14,
+    textAlign: "center",
+    fontSize: 12,
+    color: "#8A96A3",
+  },
+
+  inputWrap: {
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E6ECF0",
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+    marginTop: 10,
+  },
+  input: {
+    fontSize: 13.5,
+    color: "#111827",
+    paddingVertical: Platform.OS === "android" ? 6 : 8,
+  },
+  eye: {
+    position: "absolute",
+    right: 12,
+    width: 34,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  signupBtn: { marginTop: 16, borderRadius: 12, overflow: "hidden" },
+  signupBtnInner: {
+    height: 46,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  signupText: { color: "#FFFFFF", fontSize: 14.5, fontWeight: "800" },
+
+  or: { textAlign: "center", marginTop: 10, fontSize: 12, color: "#99A5B0" },
+
+  socialRow: {
+    marginTop: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+  },
+  socialBtn: {
+    width: 46,
+    height: 40,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E6ECF0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  bottom: {
+    marginTop: 12,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  bottomText: { fontSize: 12, color: "#7C8893" },
+  login: { fontSize: 12, color: "#3EA7BF", fontWeight: "800" },
+
+  scrollPad: { height: 32 }
+})
