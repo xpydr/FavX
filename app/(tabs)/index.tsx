@@ -1,6 +1,5 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "expo-router";
-import { Redirect } from "expo-router";
 
 import {
   Text,
@@ -11,6 +10,7 @@ import {
   View,
   Animated,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { Image as ExpoImage } from "expo-image";
 
@@ -27,64 +27,85 @@ import {
   Settings as SettingsIcon,
   Power,
   Moon,
+  ImageOff,
+  RefreshCw,
 } from "lucide-react-native";
 
+import { getFavours } from "../../services/favour";
 
+export type FavourListItem = {
+  id: string;
+  title: string;
+  description: string;
+  distance: string;
+  date: string;
+  image: string | null;
+  category: string;
+};
 
-// Mock data
-const favours = [
-  {
-    id: "1",
-    title: "Dog Walking Needed",
-    description:
-      "Looking for someone to walk my golden retriever this afternoon",
-    distance: "2km",
-    date: "Today",
-    image:
-      "https://images.unsplash.com/photo-1591160690555-5debfba289f0?q=80&w=1964&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    category: "Errands",
-  },
-  {
-    id: "2",
-    title: "Grocery Shopping Help",
-    description: "Need help carrying bags from the market",
-    distance: "1.5km",
-    date: "Tomorrow",
-    image:
-      "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    category: "Errands",
-  },
-  {
-    id: "3",
-    title: "Math Tutoring",
-    description: "High-school algebra help for my daughter",
-    distance: "3km",
-    date: "This week",
-    image:
-      "https://images.unsplash.com/photo-1635372722656-389f87a941b7?q=80&w=1931&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    category: "Tutoring",
-  },
-  {
-    id: "4",
-    title: "Furniture Assembly",
-    description: "IKEA desk needs assembly this weekend",
-    distance: "2.8km",
-    date: "Saturday",
-    image:
-      "https://images.unsplash.com/photo-1674065719169-5ba77e617e60?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    category: "Errands",
-  },
-];
+function formatFavourDate(postedAt: Date | string): string {
+  if (!postedAt) return "—";
+  const d = typeof postedAt === "string" ? new Date(postedAt) : postedAt;
+  if (isNaN(d.getTime())) return "—";
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const dDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  if (dDate.getTime() === today.getTime()) return "Today";
+  if (dDate.getTime() === yesterday.getTime()) return "Yesterday";
+  return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+
+function mapApiFavourToListItem(row: {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  location: string;
+  posted_at: Date | string;
+}): FavourListItem {
+  return {
+    id: String(row.id),
+    title: row.title ?? "—",
+    description: row.description ?? "—",
+    distance: row.location ?? "—",
+    date: formatFavourDate(row.posted_at),
+    image: null, // images not in scope for fetched favours
+    category: row.category ?? "Other",
+  };
+}
 
 const filters = ["All", "Errands", "Tutoring"];
 
 export default function HomeScreen() {
-  const router = useRouter();   
+  const router = useRouter();
   const [selectedFilter, setSelectedFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeItem, setActiveItem] = useState("Dashboard");
+  const [favours, setFavours] = useState<FavourListItem[]>([]);
+  const [isLoadingFavours, setIsLoadingFavours] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
+  const loadFavours = useCallback(() => {
+    setLoadError(false);
+    setIsLoadingFavours(true);
+    getFavours()
+      .then((data) => {
+        setFavours(data ? data.map(mapApiFavourToListItem) : []);
+      })
+      .catch(() => {
+        setLoadError(true);
+      })
+      .finally(() => {
+        setIsLoadingFavours(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    loadFavours();
+  }, [loadFavours]);
 
   const drawerWidth = useMemo(
     () => Dimensions.get("window").width * 0.75,
@@ -110,7 +131,7 @@ export default function HomeScreen() {
   const primaryMenuItems = [
     { key: "Dashboard", label: "Dashboard", icon: Home },
     { key: "Notifications", label: "Notifications", icon: Bell },
-    { key: "Leaderoard", label: "Leaderboard", icon: Crown},
+    { key: "Leaderboard", label: "Leaderboard", icon: Crown},
     { key: "Redeem", label: "Redeem", icon: Star },
   ];
 
@@ -137,7 +158,7 @@ export default function HomeScreen() {
     }
 
     return result;
-  }, [selectedFilter, searchQuery]);
+  }, [favours, selectedFilter, searchQuery]);
 
   return (
     <View style={styles.container}>
@@ -190,43 +211,66 @@ export default function HomeScreen() {
         </View>
 
         {/* Favours List */}
-        <FlatList
-          data={filteredFavours}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>
-                No favours found for the selected filter and search.
-              </Text>
-            </View>
-          }
-          renderItem={({ item }) => (
-            <Pressable style={styles.cardPressable}>
-              <View style={styles.card}>
-                <ExpoImage
-                  source={{ uri: item.image }}
-                  style={styles.cardImage}
-                  contentFit="cover"
-                />
-                <View style={styles.cardContent}>
-                  <Text style={styles.cardTitle}>{item.title}</Text>
-                  <Text style={styles.cardDescription}>
-                    {item.description}
-                  </Text>
-                  <View style={styles.cardFooter}>
-                    <Text style={styles.cardFooterText}>
-                      <MapPin size={20} color="#15b1c9ff" /> {item.distance}
-                    </Text>
-                    <Text style={styles.cardFooterText}>
-                      <Clock size={20} color="#15b1c9ff" /> {item.date}
-                    </Text>
-                  </View>
-                </View>
-              </View>
+        {isLoadingFavours ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#15b1c9ff" />
+            <Text style={styles.loadingText}>Loading...</Text>
+          </View>
+        ) : loadError ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>Failed to load favours.</Text>
+            <Pressable style={styles.refreshButton} onPress={loadFavours}>
+              <RefreshCw size={20} color="#fff" />
+              <Text style={styles.refreshButtonText}>Refresh</Text>
             </Pressable>
-          )}
-        />
+          </View>
+        ) : (
+          <FlatList
+            data={filteredFavours}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>
+                  No favours found for the selected filter and search.
+                </Text>
+              </View>
+            }
+            renderItem={({ item }) => {
+              return (
+                <Pressable style={styles.cardPressable}>
+                  <View style={styles.card}>
+                    {item.image ? (
+                      <ExpoImage
+                        source={{ uri: item.image }}
+                        style={styles.cardImage}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <View style={[styles.cardImage, styles.cardImagePlaceholder]}>
+                        <ImageOff size={40} color="#9ca3af" />
+                      </View>
+                    )}
+                    <View style={styles.cardContent}>
+                      <Text style={styles.cardTitle}>{item.title}</Text>
+                      <Text style={styles.cardDescription}>
+                        {item.description}
+                      </Text>
+                      <View style={styles.cardFooter}>
+                        <Text style={styles.cardFooterText}>
+                          <MapPin size={20} color="#15b1c9ff" /> {item.distance}
+                        </Text>
+                        <Text style={styles.cardFooterText}>
+                          <Clock size={20} color="#15b1c9ff" /> {item.date}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </Pressable>
+              );
+            }}
+          />
+        )}
       </View>
 
       {/* TAP AREA ON THE RIGHT TO CLOSE */}
@@ -417,6 +461,44 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 20,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 48,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: "#6b7280",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 48,
+    paddingHorizontal: 24,
+  },
+  errorText: {
+    fontSize: 17,
+    color: "#6b7280",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  refreshButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#15b1c9ff",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 999,
+    gap: 8,
+  },
+  refreshButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#fff",
+  },
   cardPressable: {
     marginHorizontal: 16,
     marginVertical: 8,
@@ -439,6 +521,11 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     display: "flex",
     flex: 0,
+  },
+  cardImagePlaceholder: {
+    backgroundColor: "#e5e7eb",
+    alignItems: "center",
+    justifyContent: "center",
   },
   cardContent: {
     flex: 1,
