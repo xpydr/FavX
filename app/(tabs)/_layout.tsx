@@ -41,20 +41,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color }) => (
-            <User size={28} color={color} strokeWidth={2.5} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="messages"
         options={{
           title: "Messages",
           tabBarIcon: ({ color }) => (
             <MessageCircle size={28} color={color} strokeWidth={2.5} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color }) => (
+            <User size={28} color={color} strokeWidth={2.5} />
           ),
         }}
       />
