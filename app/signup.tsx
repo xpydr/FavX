@@ -142,7 +142,7 @@ export default function Signup(){
                     <TouchableOpacity
                         activeOpacity={0.9}
                         style={styles.signupBtn}
-                        onPress={() => router.replace("/(tabs)")}
+                        onPress={() => router.replace("/login")}
                     >
                         <LinearGradient
                             colors={["#67CBD6", "#3BA8C1"]}
@@ -150,7 +150,7 @@ export default function Signup(){
                             end={{ x: 0.95, y: 1 }}
                             style={styles.signupBtnInner}
                         >
-                            <Text style={styles.signupBtnText}>Sign Up</Text>
+                            <Text style={styles.signupText}>Sign Up</Text>
                         </LinearGradient>
                     </TouchableOpacity>
 
@@ -173,7 +173,7 @@ export default function Signup(){
 
                     <View style={styles.bottom}>
                         <Text style={styles.bottomText}>Already have an account?</Text>
-                        <TouchableOpacity activeOpacity={0.85} onPress={() => router.back()}>
+                        <TouchableOpacity activeOpacity={0.85} onPress={() => router.replace("/login")}>
                             <Text style={styles.login}>Log In</Text>
                         </TouchableOpacity>
                     </View>
