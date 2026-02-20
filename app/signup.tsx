@@ -58,7 +58,7 @@ export default function Signup(){
 
         // full name
         if (!fullname.trim()) {
-            newErrors.fullName = "Full name is required.";
+            newErrors.fullname = "Full name is required.";
         }
 
         // username
@@ -229,7 +229,7 @@ export default function Signup(){
                     <TouchableOpacity
                         activeOpacity={0.9}
                         style={styles.signupBtn}
-                        onPress={() => router.replace("/login")}
+                        onPress={handleSignup}
                     >
                         <LinearGradient
                             colors={["#67CBD6", "#3BA8C1"]}
