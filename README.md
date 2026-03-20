@@ -49,8 +49,6 @@ The vision of FavX is to create a platform where communities can support each ot
 - ✅ **UI development largely completed** — Most of the application interface has been designed and implemented, including key screens, navigation, and user flow.
 - 🗄️ **Database setup completed** — The backend database structure is already in place and ready to support core application features.
 - 🚧 **Frontend-backend integration in progress** — The current focus is on connecting the mobile interface to backend services and replacing static UI with live data.
-- 🔐 **OAuth integration upcoming** — Social and external authentication support is planned to improve the login experience.
--💬 **Real-time chat planned** — A live messaging system using Supabase and WebSocket-based real-time features will be added to support user communication.
 
 ## System Implementation 
 
