@@ -9,10 +9,10 @@ interface Favour {
   description: string;
   type: string;
   location: string;
-  latitude: string;
-  longitude: string;
+  latitude: number;
+  longitude: number;
   status: string;
-  credit_reward: string;
+  credit_reward: number;
   posted_at: Date | string;
   accepted_at?: Date | string;
   completed_at?: Date | string;
@@ -25,10 +25,10 @@ export interface CreateFavourInput {
   description: string;
   type: string;
   location: string;
-  latitude: string;
-  longitude: string;
+  latitude: number;
+  longitude: number;
   status: string;
-  credit_reward: string;
+  credit_reward: number;
 }
 
 export async function getFavours(): Promise<Favour[]> {

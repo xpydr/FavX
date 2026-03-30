@@ -320,10 +320,10 @@ export default function PostFavourScreen() {
                 description: description.trim(),
                 type: type,
                 location: locationString,
-                latitude: String(selectedLocation.latitude),
-                longitude: String(selectedLocation.longitude),
+                latitude: selectedLocation.latitude,
+                longitude: selectedLocation.longitude,
                 status: "posted",
-                credit_reward: creditReward.trim() || "0",
+                credit_reward: Number(creditReward.trim() || "0") || 0,
             });
 
             Alert.alert(
