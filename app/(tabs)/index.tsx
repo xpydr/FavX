@@ -241,7 +241,15 @@ export default function HomeScreen() {
             }
             renderItem={({ item }) => {
               return (
-                <Pressable style={styles.cardPressable}>
+                <Pressable
+                  style={styles.cardPressable}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/favour/[id]",
+                      params: { id: item.id },
+                    })
+                  }
+                >
                   <View style={styles.card}>
                     {item.image ? (
                       <ExpoImage
