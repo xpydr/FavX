@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { AuthProvider } from "../context/AuthContext";
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -8,10 +9,13 @@ export const unstable_settings = {
 export default function RootLayout() {
   return (
     <>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-      </Stack>
+      <AuthProvider>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="favour/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+        </Stack>
+      </AuthProvider>
       <StatusBar style="auto" />
     </>
   );

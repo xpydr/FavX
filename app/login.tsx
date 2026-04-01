@@ -13,21 +13,16 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
-
-import FavXHeart from "../assets/icons/favx-heart.svg"; 
-
-// dummy account for testing, no real auth logic implemented yet
-const DUMMY_USER = {
-  email: "dummy@dummy.com",
-  username: "dummy123",
-  password: "password123!"
-}
+import FavXHeart from "../assets/icons/favx-heart.svg";
+import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
+  const { signIn } = useAuth();
   const [email, setEmail] = useState("user@testmail.com");
-  const [password, setPassword] = useState("••••••••••••");
+  const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
@@ -41,40 +36,35 @@ export default function Login() {
     return Math.min(max, width - sidePadding * 2);
   }, [width]);
 
-  // this is just a placeholder function to demonstrate error handling in the form
-  const handleLogin = () => {
-
-    // clear previous errors
+  const handleLogin = async () => {
     setEmailError("");
     setPasswordError("");
     setGeneralError("");
 
     let hasError = false;
 
-    // basic validation
-    if(!email.trim()){
+    if (!email.trim()) {
       setEmailError("Email is required.");
       hasError = true;
     }
 
-    if(!password){
+    if (!password) {
       setPasswordError("Password is required.");
       hasError = true;
     }
 
-    if(hasError) return;
+    if (hasError) return;
 
-    // fake auth check against dummy user
-    const emailMatch = email.trim().toLowerCase() === DUMMY_USER.email;
-    const passwordMatch = password === DUMMY_USER.password;
-
-    if(!emailMatch || !passwordMatch){
-      setGeneralError("Invalid email or password.");
-      return;
+    try {
+      setIsSubmitting(true);
+      await signIn(email.trim(), password);
+      router.replace("/(tabs)");
+    } catch (error: any) {
+      setGeneralError(error?.message || "Invalid email or password.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    router.replace("/(tabs)"); // fake success for now
-  }
+  };
 
   return (
     <LinearGradient
@@ -83,7 +73,6 @@ export default function Login() {
       end={{ x: 0.9, y: 1 }}
       style={styles.bg}
     >
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.heartContainer}>
           <FavXHeart width={80} height={80} />
@@ -91,16 +80,16 @@ export default function Login() {
 
         <Text style={styles.brand}>FavX</Text>
         <Text style={styles.sub1}>Favour for favour.</Text>
-        <Text style={styles.sub1}>Community made <Text style={{ fontWeight: "bold" }}>stronger</Text></Text>
+        <Text style={styles.sub1}>
+          Community made <Text style={{ fontWeight: "bold" }}>stronger</Text>
+        </Text>
         <View style={styles.underline} />
       </View>
 
-      {/* Card */}
       <View style={[styles.card, { width: cardWidth }]}>
         <Text style={styles.title}>Login</Text>
         <Text style={styles.helper}>Enter your email and password to log in</Text>
 
-        {/* General error message */}
         {generalError ? (
           <View style={styles.generalErrorWrap}>
             <Ionicons name="alert-circle-outline" size={14} color="#D94F4F" />
@@ -108,10 +97,7 @@ export default function Login() {
           </View>
         ) : null}
 
-        <View style={[
-          styles.inputWrap,
-          emailError ? styles.inputWrapError : null
-        ]}>
+        <View style={[styles.inputWrap, emailError ? styles.inputWrapError : null]}>
           <TextInput
             value={email}
             onChangeText={(v) => {
@@ -128,10 +114,7 @@ export default function Login() {
         </View>
         {emailError ? <Text style={styles.fieldError}>{emailError}</Text> : null}
 
-        <View style={[
-          styles.inputWrap,
-          passwordError ? styles.inputWrapError : null
-        ]}>
+        <View style={[styles.inputWrap, passwordError ? styles.inputWrapError : null]}>
           <TextInput
             value={password}
             onChangeText={(v) => {
@@ -161,9 +144,7 @@ export default function Login() {
             style={styles.rememberRow}
           >
             <View style={[styles.checkbox, remember && styles.checkboxOn]}>
-              {remember ? (
-                <Ionicons name="checkmark" size={14} color="#fff" />
-              ) : null}
+              {remember ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
             </View>
             <Text style={styles.rememberText}>Remember me</Text>
           </TouchableOpacity>
@@ -176,15 +157,16 @@ export default function Login() {
         <TouchableOpacity
           activeOpacity={0.9}
           style={styles.loginBtn}
-          onPress={() => router.replace("/(tabs)")} // fake success for now
+          onPress={handleLogin}
+          disabled={isSubmitting}
         >
           <LinearGradient
             colors={["#67CBD6", "#3BA8C1"]}
             start={{ x: 0.05, y: 0 }}
             end={{ x: 0.95, y: 1 }}
-            style={styles.loginBtnInner}
+            style={[styles.loginBtnInner, isSubmitting && styles.loginBtnInnerDisabled]}
           >
-            <Text style={styles.loginText}>Login</Text>
+            <Text style={styles.loginText}>{isSubmitting ? "Signing in..." : "Login"}</Text>
           </LinearGradient>
         </TouchableOpacity>
 
@@ -206,7 +188,7 @@ export default function Login() {
         </View>
 
         <View style={styles.bottom}>
-          <Text style={styles.bottomText}>Don’t have an account?</Text>
+          <Text style={styles.bottomText}>Don�t have an account?</Text>
           <TouchableOpacity activeOpacity={0.85} onPress={() => router.push("/signup")}>
             <Text style={styles.signup}> Sign Up</Text>
           </TouchableOpacity>
@@ -252,14 +234,21 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  underline: {position: "absolute",
-  left: -50,
-  right: 0.1,
-  height: 10,                 
-  borderRadius: 999,
-  backgroundColor: "rgba(255,255,255,0.88)",
-  bottom: -1,
-  transform: [{ translateX: 100 }, { translateY: -8 }, { rotate: "-5deg" }, { scaleX: 0.1 }, { scaleY: 0.4 },],
+  underline: {
+    position: "absolute",
+    left: -50,
+    right: 0.1,
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.88)",
+    bottom: -1,
+    transform: [
+      { translateX: 100 },
+      { translateY: -8 },
+      { rotate: "-5deg" },
+      { scaleX: 0.1 },
+      { scaleY: 0.4 },
+    ],
   },
 
   card: {
@@ -369,6 +358,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
+  },
+  loginBtnInnerDisabled: {
+    opacity: 0.7,
   },
   loginText: { color: "#FFFFFF", fontSize: 14.5, fontWeight: "800" },
 
