@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 
 import {
   Text,
@@ -103,9 +104,11 @@ export default function HomeScreen() {
       });
   }, []);
 
-  useEffect(() => {
-    loadFavours();
-  }, [loadFavours]);
+  useFocusEffect(
+    useCallback(() => {
+      loadFavours();
+    }, [loadFavours])
+  );
 
   const drawerWidth = useMemo(
     () => Dimensions.get("window").width * 0.75,
