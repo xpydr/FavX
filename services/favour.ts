@@ -1,6 +1,5 @@
 import { supabase } from "../lib/supabase";
-
-interface Favour {
+export interface Favour {
   id: string;
   requester_id: string;
   helper_id?: string;
@@ -16,6 +15,13 @@ interface Favour {
   posted_at: Date | string;
   accepted_at?: Date | string;
   completed_at?: Date | string;
+}
+
+export interface FavourDetails extends Favour {
+  requester_name: string;
+  requester_avatar_url?: string;
+  requester_is_verified: boolean;
+  requester_reputation_score?: number;
 }
 
 export interface CreateFavourInput {
@@ -35,6 +41,34 @@ export async function getFavours(): Promise<Favour[]> {
   const { data, error } = await supabase.from("favours").select("*");
   if (error) throw error;
   return data;
+}
+
+export async function getFavourDetailsById(id: string): Promise<FavourDetails> {
+  const { data: favour, error: favourError } = await supabase
+    .from("favours")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (favourError) throw favourError;
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("full_name, username, avatar_url, is_verified, reputation_score")
+    .eq("id", favour.requester_id)
+    .maybeSingle();
+
+  if (profileError) throw profileError;
+
+  const requesterName = profile?.full_name || profile?.username || "Unknown user";
+
+  return {
+    ...favour,
+    requester_name: requesterName,
+    requester_avatar_url: profile?.avatar_url || undefined,
+    requester_is_verified: Boolean(profile?.is_verified),
+    requester_reputation_score: profile?.reputation_score ?? undefined,
+  };
 }
 
 export async function createFavour(favour: CreateFavourInput) {
