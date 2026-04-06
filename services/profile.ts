@@ -30,6 +30,17 @@ export async function getProfiles(): Promise<Profile[]> {
   return data;
 }
 
+/** Fetches one profile by auth user id (`profiles.id` === `auth.users.id`). */
+export async function getProfileByUserId(userId: string): Promise<Profile | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 export async function createProfile(profile: CreateProfileInput) {
   const { data, error } = await supabase.from("profiles").insert(profile);
   if (error) throw error;
