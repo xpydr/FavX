@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   Pressable,
   Switch,
 } from "react-native";
+import { useAuth } from "../../context/AuthContext";
+import { supabase } from "../../lib/supabase";
 import { useRouter } from "expo-router";
 import { Image as ExpoImage } from "expo-image";
 import {
@@ -19,7 +21,25 @@ import {
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [profile, setProfile] = useState(null);
+
+useEffect(() => {
+  if (!user) return;
+
+  const loadProfile = async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("full_name, username, avatar_url")
+      .eq("id", user.id)
+      .single();
+
+    setProfile(data);
+  };
+
+  loadProfile();
+}, [user]);
 
   return (
     <View style={styles.container}>
@@ -33,7 +53,7 @@ export default function SettingsScreen() {
       </View>
 
       {/* Profile card */}
-      <Pressable style={styles.profileCard} onPress={() => { /* router.push("/(tabs)/profile") */ }}>
+      <Pressable style={styles.profileCard} onPress={() => router.push("/profile")}>
         <View style={styles.profileLeft}>
           <ExpoImage
             source={{
@@ -43,7 +63,9 @@ export default function SettingsScreen() {
             contentFit="cover"
           />
           <View>
-            <Text style={styles.profileName}>You</Text>
+           <Text style={styles.profileName}>
+             {profile?.full_name || profile?.username || "User"}
+           </Text>
             <Text style={styles.profileSubtitle}>Edit personal details</Text>
           </View>
         </View>
