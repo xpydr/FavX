@@ -78,8 +78,10 @@ export default function ProfileScreen() {
   }
 
   const { profile, skills, completedFavours, requestedFavours, verifiedReviews } = overview;
-  const ratingPlaceholder = "N/A";
-
+  const ratingValue =
+    typeof overview.avgRating === "number"
+      ? overview.avgRating.toFixed(1)
+      : "N/A";
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
        {/* Header */}
@@ -117,7 +119,7 @@ export default function ProfileScreen() {
             </View>
 
             <View style={styles.ratingRow}>
-              <Text style={styles.ratingValue}>{ratingPlaceholder}</Text>
+              <Text style={styles.ratingValue}>{ratingValue}</Text>
               <Star size={14} color="#15b1c9ff" fill="#15b1c9ff" />
             </View>
           </View>
