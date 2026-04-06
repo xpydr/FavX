@@ -91,7 +91,7 @@ useEffect(() => {
         {/* Change Password */}
         <Pressable
           style={styles.row}
-          onPress={() => { /* router.push("/change-password") */ }}
+          onPress={() => router.push("/change-password")}
         >
           <View style={styles.rowLeft}>
             <View style={styles.iconCircle}>

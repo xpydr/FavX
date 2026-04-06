@@ -85,7 +85,7 @@ export default function ProfileScreen() {
        {/* Header */}
        <View style={styles.headerRow}>
          <Pressable onPress={() => router.back()} hitSlop={12}>
-           <ArrowLeft size={22} color="#15b1c9ff" />
+           <ArrowLeft size={23} color="#15b1c9ff"/>
          </Pressable>
          <Text style={styles.headerTitle}>My Profile</Text>
          <View style={{ width: 22 }} />
@@ -186,7 +186,7 @@ export default function ProfileScreen() {
               style={styles.editBtn}
               onPress={() => router.push("/edit-profile")}
             >
-              <Text style={styles.editBtnText}>Edit</Text>
+              <Text style={styles.editBtnText}>Edit Profile</Text>
             </Pressable>
           </View>
     </ScrollView>
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
       marginBottom: 16,
     },
    headerTitle: {
-      fontSize: 26,
+      fontSize: 23,
       fontWeight: "800",
       color: "#15b1c9ff",
       textAlign: "center",
@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#15b1c9ff",
     borderRadius: 14,
     height: 50,
-    width: "80%",
+    width: "100%",
     alignItems: "center",
     justifyContent: "center",
   },
