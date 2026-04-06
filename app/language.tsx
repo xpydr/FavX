@@ -17,7 +17,7 @@ export default function LanguageScreen() {
 
   const handleSave = () => {
       if (selectedLanguage === "fr-CA") {
-        setErrorMsg("Sorry this service is currently not available");
+        setErrorMsg("Sorry, this service is currently not available");
         return;
       }
 
