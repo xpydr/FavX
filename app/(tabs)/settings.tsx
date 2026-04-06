@@ -77,7 +77,7 @@ useEffect(() => {
         {/* Edit Profile */}
         <Pressable
           style={styles.row}
-          onPress={() => { /* router.push("/(tabs)/profile") */ }}
+          onPress={() =>  router.push("/edit-profile") }
         >
           <View style={styles.rowLeft}>
             <View style={styles.iconCircle}>
