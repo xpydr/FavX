@@ -57,7 +57,7 @@ useEffect(() => {
         <View style={styles.profileLeft}>
           <ExpoImage
             source={{
-              uri: "https://i.pravatar.cc/300?img=13",
+              uri: profile?.avatar_url || "https://i.pinimg.com/736x/0d/34/fc/0d34fcc9eca1545e5103ae668c339576.jpg",
             }}
             style={styles.avatar}
             contentFit="cover"

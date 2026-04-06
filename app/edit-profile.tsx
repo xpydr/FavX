@@ -13,6 +13,8 @@ import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { ArrowLeft } from "lucide-react-native";
+import * as ImagePicker from "expo-image-picker";
+import { Image as ExpoImage } from "expo-image";
 
 export default function EditProfile() {
   const { user } = useAuth();
@@ -25,14 +27,16 @@ export default function EditProfile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // 🔹 load existing profile
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+
   useEffect(() => {
     const load = async () => {
       if (!user) return;
 
       const { data, error } = await supabase
         .from("profiles")
-        .select("full_name, username, location")
+        .select("full_name, username, location, avatar_url")
         .eq("id", user.id)
         .single();
 
@@ -46,6 +50,7 @@ export default function EditProfile() {
         setFullName(data.full_name || "");
         setUsername(data.username || "");
         setLocation(data.location || "");
+        setAvatarUrl(data.avatar_url || null);
       }
 
       setLoading(false);
@@ -54,7 +59,46 @@ export default function EditProfile() {
     load();
   }, [user]);
 
-  // 🔹 save profile
+ const pickImage = async () => {
+   if (!user) return;
+
+   const result = await ImagePicker.launchImageLibraryAsync({
+     mediaTypes: ImagePicker.MediaTypeOptions.Images,
+     quality: 0.7,
+   });
+
+   if (result.canceled) return;
+
+   const image = result.assets[0];
+   const response = await fetch(image.uri);
+   const blob = await response.blob();
+
+   const fileExt = image.uri.split(".").pop();
+   const filePath = `${user.id}.${fileExt}`;
+
+   try {
+     setUploading(true);
+
+     const { error: uploadError } = await supabase.storage
+       .from("avatars")
+       .upload(filePath, blob, {
+         upsert: true,
+       });
+
+     if (uploadError) throw uploadError;
+
+     const { data } = supabase.storage
+       .from("avatars")
+       .getPublicUrl(filePath);
+
+     setAvatarUrl(data.publicUrl);
+   } catch (err) {
+     console.log("UPLOAD ERROR:", err);
+   } finally {
+     setUploading(false);
+   }
+ };
+
   const handleSave = async () => {
     if (!user) return;
 
@@ -72,6 +116,7 @@ export default function EditProfile() {
           full_name: fullName.trim(),
           username: username.trim(),
           location: location.trim(),
+          avatar_url: avatarUrl,
         })
         .eq("id", user.id);
 
@@ -81,7 +126,7 @@ export default function EditProfile() {
         return;
       }
 
-      router.back(); // ✅ 돌아가면 Profile 자동 refresh됨
+      router.back();
     } finally {
       setSaving(false);
     }
@@ -105,7 +150,23 @@ export default function EditProfile() {
         <Text style={styles.headerTitle}>Edit Profile</Text>
         <View style={{ width: 22 }} />
       </View>
+      <View style={styles.avatarWrap}>
+         <Pressable onPress={pickImage}>
+          <ExpoImage
+          source={
+            avatarUrl
+              ? { uri: avatarUrl }
+              : require("../assets/icon.png")
+          }
+          style={styles.avatar}
+          contentFit="cover"
+           />
+         </Pressable>
 
+       <Text style={styles.avatarHint}>
+        {uploading ? "Uploading..." : "Tap to change photo"}
+       </Text>
+     </View>
       {/* Form */}
       <View style={styles.card}>
         <Text style={styles.label}>Full Name</Text>
@@ -222,4 +283,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#f9fafb",
   },
+
+   avatarWrap: {
+      alignItems: "center",
+      marginBottom: 20,
+    },
+
+   avatar: {
+      width: 90,
+      height: 90,
+      borderRadius: 45,
+      backgroundColor: "#e5e7eb",
+    },
+
+   avatarHint: {
+      marginTop: 8,
+      fontSize: 12,
+      color: "#6b7280",
+    }
 });
+
