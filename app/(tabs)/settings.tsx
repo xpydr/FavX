@@ -121,7 +121,7 @@ useEffect(() => {
         {/* Language */}
         <Pressable
           style={styles.row}
-          onPress={() => { /* router.push("/language") */ }}
+          onPress={() => router.push("/language")}
         >
           <View style={styles.rowLeft}>
             <View style={styles.iconCircle}>
