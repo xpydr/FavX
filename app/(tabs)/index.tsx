@@ -33,6 +33,7 @@ import {
 } from "lucide-react-native";
 
 import { getFavours } from "../../services/favour";
+import { useAuth } from "../../context/AuthContext";
 
 export type FavourListItem = {
   id: string;
@@ -55,7 +56,11 @@ function formatFavourDate(postedAt: Date | string): string {
   const dDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   if (dDate.getTime() === today.getTime()) return "Today";
   if (dDate.getTime() === yesterday.getTime()) return "Yesterday";
-  return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  return d.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function mapApiFavourToListItem(row: {
@@ -81,6 +86,7 @@ const filters = ["All", "Errands", "Tutoring"];
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { user, signOut } = useAuth();
   const [selectedFilter, setSelectedFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -107,13 +113,10 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       loadFavours();
-    }, [loadFavours])
+    }, [loadFavours]),
   );
 
-  const drawerWidth = useMemo(
-    () => Dimensions.get("window").width * 0.75,
-    []
-  );
+  const drawerWidth = useMemo(() => Dimensions.get("window").width * 0.75, []);
 
   // 0 = closed, 1 = open
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -134,14 +137,18 @@ export default function HomeScreen() {
   const primaryMenuItems = [
     { key: "Dashboard", label: "Dashboard", icon: Home },
     { key: "Notifications", label: "Notifications", icon: Bell },
-    { key: "Leaderboard", label: "Leaderboard", icon: Crown},
+    { key: "Leaderboard", label: "Leaderboard", icon: Crown },
     { key: "Redeem", label: "Redeem", icon: Star },
   ];
 
   const secondaryMenuItems = [
     { key: "Report", label: "Report", icon: Info },
     { key: "Settings", label: "Settings", icon: SettingsIcon },
-    { key: "Logout", label: "Log out", icon: Power },
+    {
+      key: user ? "Logout" : "Login",
+      label: user ? "Log out" : "Log in",
+      icon: Power,
+    },
   ];
 
   const filteredFavours = useMemo(() => {
@@ -156,7 +163,7 @@ export default function HomeScreen() {
       result = result.filter(
         (item) =>
           item.title.toLowerCase().includes(q) ||
-          item.description.toLowerCase().includes(q)
+          item.description.toLowerCase().includes(q),
       );
     }
 
@@ -243,12 +250,16 @@ export default function HomeScreen() {
               return (
                 <Pressable
                   style={styles.cardPressable}
-                  onPress={() =>
+                  onPress={() => {
+                    if (!user) {
+                      router.push("/login");
+                      return;
+                    }
                     router.push({
                       pathname: "/favour/[id]",
                       params: { id: item.id },
-                    })
-                  }
+                    });
+                  }}
                 >
                   <View style={styles.card}>
                     {item.image ? (
@@ -258,7 +269,9 @@ export default function HomeScreen() {
                         contentFit="cover"
                       />
                     ) : (
-                      <View style={[styles.cardImage, styles.cardImagePlaceholder]}>
+                      <View
+                        style={[styles.cardImage, styles.cardImagePlaceholder]}
+                      >
                         <ImageOff size={40} color="#9ca3af" />
                       </View>
                     )}
@@ -323,19 +336,13 @@ export default function HomeScreen() {
                     setIsMenuOpen(false);
 
                     if (item.key === "Notifications") {
-                      router.push("/(tabs)/notifications");   
-                    }
-                  
-                    else if (item.key === "Redeem") {
+                      router.push("/(tabs)/notifications");
+                    } else if (item.key === "Redeem") {
                       router.push("/(tabs)/redeem");
-                    }
-
-                    else if (item.key === "Leaderboard") {
+                    } else if (item.key === "Leaderboard") {
                       router.push("/(tabs)/leaderboard");
                     }
-
-                  }
-                }
+                  }}
                   style={[
                     styles.drawerItemRow,
                     isActive && styles.drawerItemRowActive,
@@ -373,24 +380,20 @@ export default function HomeScreen() {
             return (
               <Pressable
                 key={item.key}
-                onPress={() => {
+                onPress={async () => {
                   setActiveItem(item.key);
                   setIsMenuOpen(false);
 
                   if (item.key === "Report") {
-                    router.push("/(tabs)/report");  
-                  
-                  } 
-                  
-                  else if (item.key === "Settings") {
+                    router.push("/(tabs)/report");
+                  } else if (item.key === "Settings") {
                     router.push("/(tabs)/settings");
-                  }
-
-                  else if (item.key === "Logout") {
-                    router.replace("/login"); 
+                  } else if (item.key === "Logout") {
+                    await signOut();
+                  } else if (item.key === "Login") {
+                    router.push("/login");
                   }
                 }}
-
                 style={styles.drawerBottomItem}
               >
                 <Icon size={18} color="#4b5563" />
@@ -575,14 +578,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  
   backdrop: {
     position: "absolute",
     top: 0,
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "transparent", 
+    backgroundColor: "transparent",
   },
   drawer: {
     position: "absolute",
