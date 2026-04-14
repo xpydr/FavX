@@ -1,58 +1,77 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import {
   View,
   Text,
   FlatList,
   StyleSheet,
   Pressable,
+  ActivityIndicator,
 } from "react-native";
 import { Image as ExpoImage } from "expo-image";
-import { Star } from "lucide-react-native";
-
-const rewardItems = [
-  {
-    id: "1",
-    title: "Coffee Shop Voucher",
-    brand: "Local Café",
-    description: "Free latte or tea at participating locations.",
-    points: 250,
-    rating: 4.7,
-    image:
-      "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=1200&auto=format&fit=crop",
-  },
-  {
-    id: "2",
-    title: "Grocery Discount",
-    brand: "Fresh Market",
-    description: "$10 off your next grocery trip.",
-    points: 400,
-    rating: 4.6,
-    image:
-      "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=1200&auto=format&fit=crop",
-  },
-  {
-    id: "3",
-    title: "Transit Pass",
-    brand: "City Transit",
-    description: "Day pass for buses and subway.",
-    points: 550,
-    rating: 4.8,
-    image:
-      "https://images.unsplash.com/photo-1517940310602-2858c944e3ea?q=80&w=1200&auto=format&fit=crop",
-  },
-  {
-    id: "4",
-    title: "Pet Store Coupon",
-    brand: "Happy Paws",
-    description: "$15 toward pet food or toys.",
-    points: 300,
-    rating: 4.5,
-    image:
-      "https://images.unsplash.com/photo-1596496181848-333Vicb3BrU?q=80&w=1200&auto=format&fit=crop",
-  },
-];
+import { useRouter } from "expo-router";
+import { supabase } from "../../lib/supabase";
 
 export default function RedeemScreen() {
+  const router = useRouter();
+  const { user } = useAuth();
+  const [rewards, setRewards] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [credits, setCredits] = useState<number | null>(null);
+
+  useEffect(() => {
+    const loadRewards = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("rewards")
+          .select("*")
+          .eq("is_active", true);
+
+        if (error) {
+          console.log("REWARDS ERROR:", error);
+          return;
+        }
+
+        setRewards(data || []);
+      } catch (err) {
+        console.log("REWARDS FETCH ERROR:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadRewards();
+  }, []);
+
+  useEffect(() => {
+    const loadCredits = async () => {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("credit_balance")
+        .eq("id", user.id)
+        .single();
+
+      if (error) {
+        console.log("CREDITS ERROR:", error);
+        return;
+      }
+
+      setCredits(data?.credit_balance || 0);
+    };
+
+    loadCredits();
+  }, [user]);
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#15b1c9ff" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -60,54 +79,74 @@ export default function RedeemScreen() {
         <Text style={styles.headerTitle}>Redeem Rewards</Text>
         <View style={styles.pointsPill}>
           <Text style={styles.pointsLabel}>Your points</Text>
-          <Text style={styles.pointsValue}>1,250</Text>
+          <Text style={styles.pointsValue}>
+            {credits !== null ? credits.toLocaleString() : "..."}
+          </Text>
         </View>
       </View>
 
-      <Text style={styles.subtitle}>Turn your favours into real-life perks.</Text>
+      <Text style={styles.subtitle}>
+        Turn your favours into real-life perks.
+      </Text>
 
       {/* Grid of rewards */}
       <FlatList
-        data={rewardItems}
+        data={rewards}
         keyExtractor={(item) => item.id}
         numColumns={2}
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            {/* Image + rating + favorite */}
-            <View style={styles.cardImageWrapper}>
-              <ExpoImage
-                source={{ uri: item.image }}
-                style={styles.cardImage}
-                contentFit="cover"
-              />
-              <View style={styles.ratingBadge}>
-                <Star size={12} color="#ffffff" fill="#ffffff" />
-                <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
+        renderItem={({ item }) => {
+          const isOutOfStock = item.quantity_available === 0;
+
+          return (
+            <View style={styles.card}>
+              {/* Image */}
+              <View style={styles.cardImageWrapper}>
+                <ExpoImage
+                  source={{ uri: item.image_url }}
+                  style={styles.cardImage}
+                  contentFit="cover"
+                />
               </View>
 
-            </View>
+              {/* Content */}
+              <View style={styles.cardBody}>
+                <Text style={styles.brandText}>Reward</Text>
 
-            {/* Text content */}
-            <View style={styles.cardBody}>
-              <Text style={styles.brandText}>{item.brand}</Text>
-              <Text style={styles.titleText} numberOfLines={1}>
-                {item.title}
-              </Text>
-              <Text style={styles.descriptionText} numberOfLines={2}>
-                {item.description}
-              </Text>
+                <Text style={styles.titleText} numberOfLines={1}>
+                  {item.title}
+                </Text>
 
-              <View style={styles.cardFooter}>
-                <Text style={styles.pointsText}>{item.points} pts</Text>
-                <Pressable style={styles.redeemButton}>
-                  <Text style={styles.redeemText}>Redeem</Text>
-                </Pressable>
+                <Text style={styles.descriptionText} numberOfLines={2}>
+                  {item.description}
+                </Text>
+
+                <View style={styles.cardFooter}>
+                  <Text style={styles.pointsText}>
+                    {item.price_credits} pts
+                  </Text>
+
+                  <Pressable
+                    style={[
+                      styles.redeemButton,
+                      isOutOfStock && styles.disabledButton,
+                    ]}
+                    disabled={isOutOfStock}
+                    onPress={() => {
+                      if (isOutOfStock) return;
+                      console.log("Redeem:", item.id);
+                    }}
+                  >
+                    <Text style={styles.redeemText}>
+                      {isOutOfStock ? "Sold Out" : "Redeem"}
+                    </Text>
+                  </Pressable>
+                </View>
               </View>
             </View>
-          </View>
-        )}
+          );
+        }}
       />
     </View>
   );
@@ -238,5 +277,15 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     color: "#ffffff",
+  },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+
+  disabledButton: {
+    backgroundColor: "#9ca3af",
   },
 });
