@@ -141,7 +141,7 @@ export default function FavourDetailsScreen() {
               {rating !== null && (
                 <View style={styles.ratingRow}>
                   <Star size={14} color="#15b1c9ff" fill="#15b1c9ff" />
-                  <Text style={styles.ratingText}>{rating} / 5</Text>
+                  <Text style={styles.ratingText}>{rating} </Text>
                 </View>
               )}
             </View>
