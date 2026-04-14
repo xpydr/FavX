@@ -372,7 +372,7 @@ export default function HomeScreen() {
             return (
               <Pressable
                 key={item.key}
-                onPress={() => {
+                onPress={async () => {
                   setActiveItem(item.key);
                   setIsMenuOpen(false);
 

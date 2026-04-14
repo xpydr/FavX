@@ -38,7 +38,7 @@ export default function RootLayout() {
   return (
     <>
       <AuthProvider>
-        <Stack>
+        <Stack screenOptions={{ headerShown: false }}>
           <RootNavigator />
         </Stack>
       </AuthProvider>
