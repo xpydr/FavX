@@ -250,12 +250,16 @@ export default function HomeScreen() {
               return (
                 <Pressable
                   style={styles.cardPressable}
-                  onPress={() =>
+                  onPress={() => {
+                    if (!user) {
+                      router.push("/login");
+                      return;
+                    }
                     router.push({
                       pathname: "/favour/[id]",
                       params: { id: item.id },
-                    })
-                  }
+                    });
+                  }}
                 >
                   <View style={styles.card}>
                     {item.image ? (
