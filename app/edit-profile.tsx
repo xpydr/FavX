@@ -12,9 +12,16 @@ import {
 import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
-import { ArrowLeft } from "lucide-react-native";
+import { ArrowLeft, PencilLine, Plus, Trash2, X } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Image as ExpoImage } from "expo-image";
+import {
+  addUserSkill,
+  getUserSkillAssignments,
+  ProfileSkillAssignment,
+  removeUserSkill,
+  updateUserSkill,
+} from "../services/profile";
 
 export default function EditProfile() {
   const { user } = useAuth();
@@ -23,37 +30,57 @@ export default function EditProfile() {
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
   const [location, setLocation] = useState("");
+  const [skillName, setSkillName] = useState("");
+  const [editingSkill, setEditingSkill] = useState<ProfileSkillAssignment | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [skillsSaving, setSkillsSaving] = useState(false);
+  const [accessError, setAccessError] = useState<string | null>(null);
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [skills, setSkills] = useState<ProfileSkillAssignment[]>([]);
 
   useEffect(() => {
     const load = async () => {
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("full_name, username, location, avatar_url")
-        .eq("id", user.id)
-        .single();
-
-      if (error) {
-        console.log("LOAD ERROR:", error);
-        Alert.alert("Error", "Failed to load profile");
+      if (!user) {
+        setAccessError("Sign in to edit your profile.");
+        setLoading(false);
         return;
       }
 
-      if (data) {
-        setFullName(data.full_name || "");
-        setUsername(data.username || "");
-        setLocation(data.location || "");
-        setAvatarUrl(data.avatar_url || null);
-      }
+      try {
+        const [{ data, error }, userSkills] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("full_name, username, location, avatar_url")
+            .eq("id", user.id)
+            .single(),
+          getUserSkillAssignments(user.id),
+        ]);
 
-      setLoading(false);
+        if (error) {
+          console.log("LOAD ERROR:", error);
+          Alert.alert("Error", "Failed to load profile");
+          return;
+        }
+
+        if (data) {
+          setFullName(data.full_name || "");
+          setUsername(data.username || "");
+          setLocation(data.location || "");
+          setAvatarUrl(data.avatar_url || null);
+        }
+
+        setSkills(userSkills);
+        setAccessError(null);
+      } catch (error) {
+        console.log("LOAD ERROR:", error);
+        Alert.alert("Error", "Failed to load profile");
+      } finally {
+        setLoading(false);
+      }
     };
 
     load();
@@ -94,10 +121,77 @@ export default function EditProfile() {
      setAvatarUrl(data.publicUrl);
    } catch (err) {
      console.log("UPLOAD ERROR:", err);
+      Alert.alert("Error", "Failed to upload image");
    } finally {
      setUploading(false);
    }
  };
+
+  const resetSkillForm = () => {
+    setSkillName("");
+    setEditingSkill(null);
+  };
+
+  const handleAddOrUpdateSkill = async () => {
+    if (!user) return;
+
+    const trimmedSkill = skillName.trim();
+    if (!trimmedSkill) {
+      Alert.alert("Validation", "Skill name is required");
+      return;
+    }
+
+    try {
+      setSkillsSaving(true);
+
+      if (editingSkill) {
+        await updateUserSkill(user.id, editingSkill.id, trimmedSkill);
+      } else {
+        await addUserSkill(user.id, trimmedSkill);
+      }
+
+      const refreshedSkills = await getUserSkillAssignments(user.id);
+      setSkills(refreshedSkills);
+      resetSkillForm();
+    } catch (error) {
+      console.log("SKILL SAVE ERROR:", error);
+      Alert.alert("Error", error instanceof Error ? error.message : "Failed to save skill");
+    } finally {
+      setSkillsSaving(false);
+    }
+  };
+
+  const beginEditSkill = (skill: ProfileSkillAssignment) => {
+    setEditingSkill(skill);
+    setSkillName(skill.skill?.name ?? "");
+  };
+
+  const confirmRemoveSkill = (skill: ProfileSkillAssignment) => {
+    if (!user) return;
+
+    Alert.alert("Remove skill", `Remove ${skill.skill?.name ?? "this skill"} from your profile?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            setSkillsSaving(true);
+            await removeUserSkill(user.id, skill.id);
+            setSkills((currentSkills) => currentSkills.filter((item) => item.id !== skill.id));
+            if (editingSkill?.id === skill.id) {
+              resetSkillForm();
+            }
+          } catch (error) {
+            console.log("SKILL DELETE ERROR:", error);
+            Alert.alert("Error", "Failed to delete skill");
+          } finally {
+            setSkillsSaving(false);
+          }
+        },
+      },
+    ]);
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -136,6 +230,19 @@ export default function EditProfile() {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#15b1c9ff" />
+      </View>
+    );
+  }
+
+  if (accessError) {
+    return (
+      <View style={styles.centered}>
+        <View style={styles.errorBox}>
+          <Text style={styles.errorText}>{accessError}</Text>
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
@@ -193,6 +300,76 @@ export default function EditProfile() {
           style={styles.input}
           placeholder="City, Country"
         />
+      </View>
+
+      <View style={styles.card}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Skills</Text>
+          <Text style={styles.sectionHint}>Saved instantly</Text>
+        </View>
+
+        {skills.length ? (
+          <View style={styles.skillList}>
+            {skills.map((skill) => (
+              <View key={skill.id} style={styles.skillRow}>
+                <View style={styles.skillChip}>
+                  <Text style={styles.skillText}>{skill.skill?.name || "Unknown skill"}</Text>
+                </View>
+
+                <View style={styles.skillActions}>
+                  <Pressable
+                    style={[styles.skillActionButton, styles.skillEditButton]}
+                    onPress={() => beginEditSkill(skill)}
+                    disabled={skillsSaving}
+                  >
+                    <PencilLine size={15} color="#0e7490" />
+                  </Pressable>
+
+                  <Pressable
+                    style={[styles.skillActionButton, styles.skillDeleteButton]}
+                    onPress={() => confirmRemoveSkill(skill)}
+                    disabled={skillsSaving}
+                  >
+                    <Trash2 size={15} color="#b91c1c" />
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.emptyText}>No skills added yet.</Text>
+        )}
+
+        <Text style={[styles.label, { marginTop: 16 }]}>{editingSkill ? "Update Skill" : "Add Skill"}</Text>
+        <TextInput
+          value={skillName}
+          onChangeText={setSkillName}
+          style={styles.input}
+          placeholder="Enter a skill name"
+          autoCapitalize="words"
+        />
+
+        <View style={styles.skillFormActions}>
+          {editingSkill ? (
+            <Pressable style={styles.cancelSkillButton} onPress={resetSkillForm} disabled={skillsSaving}>
+              <X size={16} color="#0f172a" />
+              <Text style={styles.cancelSkillText}>Cancel</Text>
+            </Pressable>
+          ) : (
+            <View />
+          )}
+
+          <Pressable
+            style={[styles.addSkillButton, skillsSaving && { opacity: 0.75 }]}
+            onPress={handleAddOrUpdateSkill}
+            disabled={skillsSaving}
+          >
+            <Plus size={16} color="#ffffff" />
+            <Text style={styles.addSkillText}>
+              {skillsSaving ? "Saving..." : editingSkill ? "Update" : "Add"}
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
       {/* Save */}
@@ -253,6 +430,24 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
 
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#15b1c9ff",
+  },
+
+  sectionHint: {
+    fontSize: 12,
+    color: "#6b7280",
+  },
+
   input: {
     height: 44,
     borderRadius: 10,
@@ -277,11 +472,140 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
+  skillList: {
+    gap: 10,
+  },
+
+  skillRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+
+  skillActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+
+  skillActionButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+
+  skillEditButton: {
+    backgroundColor: "#ecfeff",
+    borderColor: "#b6f1f9",
+  },
+
+  skillDeleteButton: {
+    backgroundColor: "#fef2f2",
+    borderColor: "#fecaca",
+  },
+
+  skillChip: {
+    flex: 1,
+    backgroundColor: "#ecfeff",
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: "#b6f1f9",
+  },
+
+  skillText: {
+    color: "#0e7490",
+    fontWeight: "600",
+    fontSize: 13,
+  },
+
+  skillFormActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 14,
+    gap: 12,
+  },
+
+  cancelSkillButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    height: 42,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#f8fafc",
+  },
+
+  cancelSkillText: {
+    color: "#0f172a",
+    fontWeight: "700",
+  },
+
+  addSkillButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "#15b1c9ff",
+    borderRadius: 12,
+    height: 42,
+  },
+
+  addSkillText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
   centered: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#f9fafb",
+    padding: 24,
+  },
+
+  errorBox: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+    gap: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+
+  errorText: {
+    fontSize: 16,
+    color: "#b91c1c",
+    textAlign: "center",
+  },
+
+  backButton: {
+    backgroundColor: "#15b1c9ff",
+    borderRadius: 12,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+
+  backButtonText: {
+    color: "#fff",
+    fontWeight: "700",
   },
 
    avatarWrap: {
