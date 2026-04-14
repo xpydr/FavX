@@ -86,7 +86,7 @@ const filters = ["All", "Errands", "Tutoring"];
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const [selectedFilter, setSelectedFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -144,7 +144,11 @@ export default function HomeScreen() {
   const secondaryMenuItems = [
     { key: "Report", label: "Report", icon: Info },
     { key: "Settings", label: "Settings", icon: SettingsIcon },
-    { key: "Logout", label: "Log out", icon: Power },
+    {
+      key: user ? "Logout" : "Login",
+      label: user ? "Log out" : "Log in",
+      icon: Power,
+    },
   ];
 
   const filteredFavours = useMemo(() => {
@@ -382,6 +386,8 @@ export default function HomeScreen() {
                     router.push("/(tabs)/settings");
                   } else if (item.key === "Logout") {
                     await signOut();
+                  } else if (item.key === "Login") {
+                    router.push("/login");
                   }
                 }}
                 style={styles.drawerBottomItem}
