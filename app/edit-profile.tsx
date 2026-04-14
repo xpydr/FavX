@@ -30,74 +30,105 @@ export default function EditProfile() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  const [allSkills, setAllSkills] = useState<any[]>([]);
+  const [selectedSkillIds, setSelectedSkillIds] = useState<any[]>([]);
+
+  const toggleSkill = (skillId: string) => {
+    setSelectedSkillIds((prev) =>
+      prev.includes(skillId)
+        ? prev.filter((id) => id !== skillId)
+        : [...prev, skillId],
+    );
+  };
+
   useEffect(() => {
     const load = async () => {
       if (!user) return;
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("full_name, username, location, avatar_url")
-        .eq("id", user.id)
-        .single();
+      try {
+        setLoading(true);
 
-      if (error) {
+        const [profileRes, skillsRes, profileSkillsRes] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("full_name, username, location, avatar_url")
+            .eq("id", user.id)
+            .single(),
+
+          supabase
+            .from("skills")
+            .select("id, name")
+            .order("name", { ascending: true }),
+
+          supabase
+            .from("profile_skills")
+            .select("skill_id")
+            .eq("profile_id", user.id),
+        ]);
+
+        if (profileRes.error) throw profileRes.error;
+        if (skillsRes.error) throw skillsRes.error;
+        if (profileSkillsRes.error) throw profileSkillsRes.error;
+
+        if (profileRes.data) {
+          setFullName(profileRes.data.full_name || "");
+          setUsername(profileRes.data.username || "");
+          setLocation(profileRes.data.location || "");
+          setAvatarUrl(profileRes.data.avatar_url || null);
+        }
+
+        setAllSkills(skillsRes.data || []);
+        setSelectedSkillIds(
+          (profileSkillsRes.data || []).map((item) => item.skill_id),
+        );
+      } catch (error) {
         console.log("LOAD ERROR:", error);
         Alert.alert("Error", "Failed to load profile");
-        return;
+      } finally {
+        setLoading(false);
       }
-
-      if (data) {
-        setFullName(data.full_name || "");
-        setUsername(data.username || "");
-        setLocation(data.location || "");
-        setAvatarUrl(data.avatar_url || null);
-      }
-
-      setLoading(false);
     };
 
     load();
   }, [user]);
 
- const pickImage = async () => {
-   if (!user) return;
+  const pickImage = async () => {
+    if (!user) return;
 
-   const result = await ImagePicker.launchImageLibraryAsync({
-     mediaTypes: ImagePicker.MediaTypeOptions.Images,
-     quality: 0.7,
-   });
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+    });
 
-   if (result.canceled) return;
+    if (result.canceled) return;
 
-   const image = result.assets[0];
-   const response = await fetch(image.uri);
-   const blob = await response.blob();
+    const image = result.assets[0];
+    const response = await fetch(image.uri);
+    const blob = await response.blob();
 
-   const fileExt = image.uri.split(".").pop();
-   const filePath = `${user.id}.${fileExt}`;
+    const fileExt = image.uri.split(".").pop();
+    const filePath = `${user.id}.${fileExt}`;
 
-   try {
-     setUploading(true);
+    try {
+      setUploading(true);
 
-     const { error: uploadError } = await supabase.storage
-       .from("avatars")
-       .upload(filePath, blob, {
-         upsert: true,
-       });
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, blob, {
+          upsert: true,
+        });
 
-     if (uploadError) throw uploadError;
+      if (uploadError) throw uploadError;
 
-     const { data } = supabase.storage
-       .from("avatars")
-       .getPublicUrl(filePath);
+      const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
 
-     setAvatarUrl(data.publicUrl);
-   } catch (err) {
-     console.log("UPLOAD ERROR:", err);
-   } finally {
-     setUploading(false);
-   }
- };
+      setAvatarUrl(data.publicUrl);
+    } catch (err) {
+      console.log("UPLOAD ERROR:", err);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -106,6 +137,10 @@ export default function EditProfile() {
       Alert.alert("Validation", "Username is required");
       return;
     }
+
+    const selectedSkills = allSkills.filter((skill) =>
+      selectedSkillIds.includes(skill.id),
+    );
 
     try {
       setSaving(true);
@@ -125,8 +160,40 @@ export default function EditProfile() {
         Alert.alert("Error", error.message);
         return;
       }
+      // delete old skills
+      const { error: deleteError } = await supabase
+        .from("profile_skills")
+        .delete()
+        .eq("profile_id", user.id);
 
-      router.back();
+      if (deleteError) {
+        console.log("DELETE ERROR:", deleteError);
+        Alert.alert("Error", deleteError.message);
+        return;
+      }
+
+      // new skills insert
+      if (selectedSkillIds.length > 0) {
+        const rows = selectedSkillIds.map((skillId) => ({
+          profile_id: user.id,
+          skill_id: skillId,
+        }));
+
+        const { error: insertError } = await supabase
+          .from("profile_skills")
+          .insert(rows);
+
+        if (insertError) {
+          console.log("INSERT ERROR:", insertError);
+          Alert.alert("Error", insertError.message);
+          return;
+        }
+      }
+
+      router.replace("/profile");
+    } catch (err) {
+      console.log("SAVE ERROR:", err);
+      Alert.alert("Error", "Something went wrong");
     } finally {
       setSaving(false);
     }
@@ -151,22 +218,20 @@ export default function EditProfile() {
         <View style={{ width: 22 }} />
       </View>
       <View style={styles.avatarWrap}>
-         <Pressable onPress={pickImage}>
+        <Pressable onPress={pickImage}>
           <ExpoImage
-          source={
-            avatarUrl
-              ? { uri: avatarUrl }
-              : require("../assets/icon.png")
-          }
-          style={styles.avatar}
-          contentFit="cover"
-           />
-         </Pressable>
+            source={
+              avatarUrl ? { uri: avatarUrl } : require("../assets/icon.png")
+            }
+            style={styles.avatar}
+            contentFit="cover"
+          />
+        </Pressable>
 
-       <Text style={styles.avatarHint}>
-        {uploading ? "Uploading..." : "Tap to change photo"}
-       </Text>
-     </View>
+        <Text style={styles.avatarHint}>
+          {uploading ? "Uploading..." : "Tap to change photo"}
+        </Text>
+      </View>
       {/* Form */}
       <View style={styles.card}>
         <Text style={styles.label}>Full Name</Text>
@@ -193,6 +258,30 @@ export default function EditProfile() {
           style={styles.input}
           placeholder="City, Country"
         />
+
+        <Text style={styles.label}>Skills</Text>
+        <View style={styles.skillsWrap}>
+          {allSkills.map((skill) => {
+            const selected = selectedSkillIds.includes(skill.id);
+
+            return (
+              <Pressable
+                key={skill.id}
+                onPress={() => toggleSkill(skill.id)}
+                style={[styles.skillChip, selected && styles.skillChipSelected]}
+              >
+                <Text
+                  style={[
+                    styles.skillChipText,
+                    selected && styles.skillChipTextSelected,
+                  ]}
+                >
+                  {skill.name}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
 
       {/* Save */}
@@ -284,22 +373,77 @@ const styles = StyleSheet.create({
     backgroundColor: "#f9fafb",
   },
 
-   avatarWrap: {
-      alignItems: "center",
-      marginBottom: 20,
-    },
+  avatarWrap: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
 
-   avatar: {
-      width: 90,
-      height: 90,
-      borderRadius: 45,
-      backgroundColor: "#e5e7eb",
-    },
+  avatar: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "#e5e7eb",
+  },
 
-   avatarHint: {
-      marginTop: 8,
-      fontSize: 12,
-      color: "#6b7280",
-    }
+  avatarHint: {
+    marginTop: 8,
+    fontSize: 12,
+    color: "#6b7280",
+  },
+  addSkillRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+
+  skillInput: {
+    flex: 1,
+  },
+
+  addButton: {
+    marginLeft: 8,
+    backgroundColor: "#15b1c9ff",
+    borderRadius: 10,
+    height: 44,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  addButtonText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  skillsWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+
+  skillChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    backgroundColor: "#ffffff",
+    marginRight: 8,
+    marginBottom: 8,
+  },
+
+  skillChipSelected: {
+    backgroundColor: "#15b1c9ff",
+    borderColor: "#15b1c9ff",
+  },
+
+  skillChipText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#374151",
+  },
+
+  skillChipTextSelected: {
+    color: "#ffffff",
+  },
 });
-
