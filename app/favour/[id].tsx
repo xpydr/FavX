@@ -14,6 +14,7 @@ import {
 } from "react-native";
 
 import { FavourDetails, getFavourDetailsById } from "../../services/favour";
+import { supabase } from "../../lib/supabase";
 
 export default function FavourDetailsScreen() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function FavourDetailsScreen() {
   const [favour, setFavour] = useState<FavourDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [rating, setRating] = useState<number | null>(null);
 
   useEffect(() => {
     if (!id) {
@@ -32,11 +34,33 @@ export default function FavourDetailsScreen() {
     let isMounted = true;
 
     getFavourDetailsById(id)
-      .then((data) => {
+      .then(async (data) => {
         if (isMounted) {
           setFavour(data);
+
+          // fetch reviews for this user
+          const { data: reviews, error } = await supabase
+            .from("reviews")
+            .select("rating")
+            .eq("reviewee_id", data.requester_id);
+
+          if (error) {
+            console.log("REVIEWS ERROR:", error);
+            setRating(null);
+            return;
+          }
+
+          if (reviews && reviews.length > 0) {
+            const total = reviews.reduce((sum, r) => sum + (r.rating || 0), 0);
+            const avg = total / reviews.length;
+
+            setRating(Number(avg.toFixed(1)));
+          } else {
+            setRating(null);
+          }
         }
       })
+
       .catch(() => {
         if (isMounted) {
           setError("Failed to load favour details.");
@@ -69,12 +93,17 @@ export default function FavourDetailsScreen() {
     );
   }
 
-  const rating = "N/A";
-
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Pressable style={styles.backButton} onPress={() => router.back()} hitSlop={12}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <Pressable
+          style={styles.backButton}
+          onPress={() => router.back()}
+          hitSlop={12}
+        >
           <ChevronLeft size={18} color="#15b1c9ff" />
           <Text style={styles.backText}>Favour Details</Text>
         </Pressable>
@@ -101,16 +130,20 @@ export default function FavourDetailsScreen() {
 
             <View style={styles.requesterMeta}>
               <View style={styles.requesterNameRow}>
-                <Text style={styles.requesterName}>{favour.requester_name}</Text>
+                <Text style={styles.requesterName}>
+                  {favour.requester_name}
+                </Text>
                 {favour.requester_is_verified && (
                   <BadgeCheck size={15} color="#22c55e" fill="#22c55e" />
                 )}
               </View>
 
-              <View style={styles.ratingRow}>
-                <Star size={14} color="#15b1c9ff" fill="#15b1c9ff" />
-                <Text style={styles.ratingText}>{rating} (placeholder)</Text>
-              </View>
+              {rating !== null && (
+                <View style={styles.ratingRow}>
+                  <Star size={14} color="#15b1c9ff" fill="#15b1c9ff" />
+                  <Text style={styles.ratingText}>{rating} / 5</Text>
+                </View>
+              )}
             </View>
           </View>
 
@@ -122,7 +155,11 @@ export default function FavourDetailsScreen() {
           <Text style={styles.sectionTitle}>Favour Description</Text>
           <Text style={styles.description}>{favour.description}</Text>
 
-          <Pressable onPress={() => Alert.alert("Coming soon", "Accept flow will be wired next.")}>
+          <Pressable
+            onPress={() =>
+              Alert.alert("Coming soon", "Accept flow will be wired next.")
+            }
+          >
             <LinearGradient
               colors={["#4fb8cc", "#239ab2"]}
               start={{ x: 0, y: 0 }}
