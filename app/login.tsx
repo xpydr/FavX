@@ -60,6 +60,7 @@ export default function Login() {
       await signIn(email.trim(), password);
       router.replace("/(tabs)");
     } catch (error: any) {
+        console.log("LOGIN ERROR:", error);
       setGeneralError(error?.message || "Invalid email or password.");
     } finally {
       setIsSubmitting(false);
@@ -188,7 +189,7 @@ export default function Login() {
         </View>
 
         <View style={styles.bottom}>
-          <Text style={styles.bottomText}>Don’t have an account?</Text>
+          <Text style={styles.bottomText}>Donï¿½t have an account?</Text>
           <TouchableOpacity activeOpacity={0.85} onPress={() => router.push("/signup")}>
             <Text style={styles.signup}> Sign Up</Text>
           </TouchableOpacity>

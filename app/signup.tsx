@@ -13,7 +13,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-
+import { supabase } from "../lib/supabase";
 import FavXHeart from "../assets/icons/favx-heart.svg";
 
 // dummy account for testing uniqueness validation
@@ -53,7 +53,7 @@ export default function Signup(){
     };
 
     // for demo purposes, this just validates the fields and shows errors — no actual account creation
-    const handleSignup = () => {
+    const handleSignup = async() => {
         const newErrors: Record<string, string> = {};
 
         // full name
@@ -102,8 +102,33 @@ export default function Signup(){
             return;
         }
 
-        // all good — redirect to login
-        router.replace("/login");
+        // username & full_name are sent as metadata (options.data)
+        // not stored in auth.users directly
+        // available in trigger via new.raw_user_meta_data
+        // used to auto-fill `profiles` table
+          try {
+            const { data, error } = await supabase.auth.signUp({
+              email: email.trim(),
+              password,
+              options: {
+                data: {
+                  username: username.trim(),
+                  full_name: fullname.trim(),
+                }
+              }
+            });
+
+            if (error) {
+              setErrors({ email: error.message });
+              return;
+            }
+
+            // successful
+            router.replace("/login");
+
+          } catch (err) {
+            setErrors({ email: "Something went wrong. Please try again." });
+          }
     };
 
     return (

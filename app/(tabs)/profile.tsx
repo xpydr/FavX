@@ -2,6 +2,10 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Image as ExpoImage } from "expo-image";
 import { useCallback, useState } from "react";
 import { BadgeCheck, MapPin, Star } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import {
+  ArrowLeft,
+} from "lucide-react-native";
 import {
   ActivityIndicator,
   Pressable,
@@ -15,13 +19,14 @@ import { supabase } from "../../lib/supabase";
 import { getProfileOverview, ProfileOverview } from "../../services/profile";
 
 export default function ProfileScreen() {
-  const [overview, setOverview] = useState<ProfileOverview | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+    const router = useRouter();
+    const [overview, setOverview] = useState<ProfileOverview | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-  const loadProfile = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    const loadProfile = useCallback(async () => {
+        setLoading(true);
+        setError(null);
 
     try {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -73,14 +78,23 @@ export default function ProfileScreen() {
   }
 
   const { profile, skills, completedFavours, requestedFavours, verifiedReviews } = overview;
-  const ratingPlaceholder = "N/A";
-
+  const ratingValue =
+    typeof overview.avgRating === "number"
+      ? overview.avgRating.toFixed(1)
+      : "N/A";
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>My Profile</Text>
-
-      <View style={styles.card}>
+       {/* Header */}
+       <View style={styles.headerRow}>
+         <Pressable onPress={() => router.back()} hitSlop={12}>
+           <ArrowLeft size={23} color="#15b1c9ff"/>
+         </Pressable>
+         <Text style={styles.headerTitle}>My Profile</Text>
+         <View style={{ width: 22 }} />
+       </View>
+        <View style={styles.card}>
         <View style={styles.headerRow}>
+
           <ExpoImage
             source={
               profile.avatar_url
@@ -105,7 +119,7 @@ export default function ProfileScreen() {
             </View>
 
             <View style={styles.ratingRow}>
-              <Text style={styles.ratingValue}>{ratingPlaceholder}</Text>
+              <Text style={styles.ratingValue}>{ratingValue}</Text>
               <Star size={14} color="#15b1c9ff" fill="#15b1c9ff" />
             </View>
           </View>
@@ -169,6 +183,14 @@ export default function ProfileScreen() {
           <Text style={styles.emptyText}>No verified reviews yet.</Text>
         )}
       </View>
+      <View style={styles.editBtnWrap}>
+            <Pressable
+              style={styles.editBtn}
+              onPress={() => router.push("/edit-profile")}
+            >
+              <Text style={styles.editBtnText}>Edit Profile</Text>
+            </Pressable>
+          </View>
     </ScrollView>
   );
 }
@@ -207,10 +229,20 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
+
   headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 16,
+    },
+   headerTitle: {
+      fontSize: 23,
+      fontWeight: "800",
+      color: "#15b1c9ff",
+      textAlign: "center",
+      flex: 1,
+    },
   avatar: {
     width: 72,
     height: 72,
@@ -354,5 +386,26 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: "#fff",
     fontWeight: "700",
+  },
+
+  editBtnWrap: {
+    alignItems: "center",
+    marginTop: 20,
+    marginBottom: 30,
+  },
+
+  editBtn: {
+    backgroundColor: "#15b1c9ff",
+    borderRadius: 14,
+    height: 50,
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  editBtnText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 16,
   },
 });

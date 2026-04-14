@@ -44,10 +44,22 @@ export interface ProfileOverview {
   completedFavours: number;
   requestedFavours: number;
   verifiedReviews: VerifiedReview[];
+  avgRating: number | null;
 }
 
 export async function getProfiles(): Promise<Profile[]> {
   const { data, error } = await supabase.from("profiles").select("*");
+  if (error) throw error;
+  return data;
+}
+
+/** Fetches one profile by auth user id (`profiles.id` === `auth.users.id`). */
+export async function getProfileByUserId(userId: string): Promise<Profile | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .maybeSingle();
   if (error) throw error;
   return data;
 }
@@ -86,13 +98,17 @@ export async function getProfileOverview(userId: string): Promise<ProfileOvervie
     getProfileSkills(userId),
     getVerifiedReviews(userId),
   ]);
-
+  const avgRating =
+    verifiedReviews.length > 0
+      ? verifiedReviews.reduce((sum, r) => sum + r.rating, 0) / verifiedReviews.length
+      : null;
   return {
     profile,
     skills,
     completedFavours: completedFavoursCount,
     requestedFavours: requestedFavoursCount,
     verifiedReviews,
+    avgRating,
   };
 }
 
@@ -120,28 +136,22 @@ async function getCompletedFavoursCount(userId: string): Promise<number> {
 async function getProfileSkills(userId: string): Promise<ProfileSkill[]> {
   try {
     const { data: userSkillRows, error: userSkillsError } = await supabase
-      .from("user_skills")
-      .select("skill_id")
-      .eq("user_id", userId);
+      .from("profile_skills")
+      .select(`
+            skill:skill_id (
+              id,
+              name
+            )
+          `)
+      .eq("profile_id", userId);
 
-    if (userSkillsError) throw userSkillsError;
-
-    const skillIds = (userSkillRows ?? []).map((row) => row.skill_id).filter(Boolean);
-    if (!skillIds.length) return [];
-
-    const { data: skillRows, error: skillsError } = await supabase
-      .from("skills")
-      .select("id, name")
-      .in("id", skillIds);
-
-    if (skillsError) throw skillsError;
-
-    return skillRows ?? [];
-  } catch {
-    //TODO.
-    return [];
-  }
-}
+       if (userSkillsError) throw userSkillsError;
+       return (userSkillRows ?? []).map((row) => row.skill);
+     } catch (err) {
+       console.log("GET PROFILE SKILLS ERROR:", err);
+       return [];
+     }
+   }
 
 async function getVerifiedReviews(userId: string): Promise<VerifiedReview[]> {
   const { data: reviews, error: reviewsError } = await supabase
