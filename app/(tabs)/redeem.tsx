@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import {
   View,
   Text,
@@ -13,9 +14,10 @@ import { supabase } from "../../lib/supabase";
 
 export default function RedeemScreen() {
   const router = useRouter();
-
+  const { user } = useAuth();
   const [rewards, setRewards] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [credits, setCredits] = useState<number | null>(null);
 
   useEffect(() => {
     const loadRewards = async () => {
@@ -41,6 +43,27 @@ export default function RedeemScreen() {
     loadRewards();
   }, []);
 
+  useEffect(() => {
+    const loadCredits = async () => {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("credit_balance")
+        .eq("id", user.id)
+        .single();
+
+      if (error) {
+        console.log("CREDITS ERROR:", error);
+        return;
+      }
+
+      setCredits(data?.credit_balance || 0);
+    };
+
+    loadCredits();
+  }, [user]);
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -56,7 +79,9 @@ export default function RedeemScreen() {
         <Text style={styles.headerTitle}>Redeem Rewards</Text>
         <View style={styles.pointsPill}>
           <Text style={styles.pointsLabel}>Your points</Text>
-          <Text style={styles.pointsValue}>1,250</Text>
+          <Text style={styles.pointsValue}>
+            {credits !== null ? credits.toLocaleString() : "..."}
+          </Text>
         </View>
       </View>
 
