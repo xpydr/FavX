@@ -18,7 +18,7 @@ import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
   const { signIn } = useAuth();
-  const [email, setEmail] = useState("user@testmail.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [showPass, setShowPass] = useState(false);
@@ -60,7 +60,7 @@ export default function Login() {
       await signIn(email.trim(), password);
       router.replace("/(tabs)");
     } catch (error: any) {
-        console.log("LOGIN ERROR:", error);
+      console.log("LOGIN ERROR:", error);
       setGeneralError(error?.message || "Invalid email or password.");
     } finally {
       setIsSubmitting(false);
@@ -89,7 +89,9 @@ export default function Login() {
 
       <View style={[styles.card, { width: cardWidth }]}>
         <Text style={styles.title}>Login</Text>
-        <Text style={styles.helper}>Enter your email and password to log in</Text>
+        <Text style={styles.helper}>
+          Enter your email and password to log in
+        </Text>
 
         {generalError ? (
           <View style={styles.generalErrorWrap}>
@@ -98,7 +100,9 @@ export default function Login() {
           </View>
         ) : null}
 
-        <View style={[styles.inputWrap, emailError ? styles.inputWrapError : null]}>
+        <View
+          style={[styles.inputWrap, emailError ? styles.inputWrapError : null]}
+        >
           <TextInput
             value={email}
             onChangeText={(v) => {
@@ -113,9 +117,16 @@ export default function Login() {
             style={styles.input}
           />
         </View>
-        {emailError ? <Text style={styles.fieldError}>{emailError}</Text> : null}
+        {emailError ? (
+          <Text style={styles.fieldError}>{emailError}</Text>
+        ) : null}
 
-        <View style={[styles.inputWrap, passwordError ? styles.inputWrapError : null]}>
+        <View
+          style={[
+            styles.inputWrap,
+            passwordError ? styles.inputWrapError : null,
+          ]}
+        >
           <TextInput
             value={password}
             onChangeText={(v) => {
@@ -136,7 +147,9 @@ export default function Login() {
             />
           </Pressable>
         </View>
-        {passwordError ? <Text style={styles.fieldError}>{passwordError}</Text> : null}
+        {passwordError ? (
+          <Text style={styles.fieldError}>{passwordError}</Text>
+        ) : null}
 
         <View style={styles.row}>
           <TouchableOpacity
@@ -145,7 +158,9 @@ export default function Login() {
             style={styles.rememberRow}
           >
             <View style={[styles.checkbox, remember && styles.checkboxOn]}>
-              {remember ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
+              {remember ? (
+                <Ionicons name="checkmark" size={14} color="#fff" />
+              ) : null}
             </View>
             <Text style={styles.rememberText}>Remember me</Text>
           </TouchableOpacity>
@@ -165,9 +180,14 @@ export default function Login() {
             colors={["#67CBD6", "#3BA8C1"]}
             start={{ x: 0.05, y: 0 }}
             end={{ x: 0.95, y: 1 }}
-            style={[styles.loginBtnInner, isSubmitting && styles.loginBtnInnerDisabled]}
+            style={[
+              styles.loginBtnInner,
+              isSubmitting && styles.loginBtnInnerDisabled,
+            ]}
           >
-            <Text style={styles.loginText}>{isSubmitting ? "Signing in..." : "Login"}</Text>
+            <Text style={styles.loginText}>
+              {isSubmitting ? "Signing in..." : "Login"}
+            </Text>
           </LinearGradient>
         </TouchableOpacity>
 
@@ -190,7 +210,10 @@ export default function Login() {
 
         <View style={styles.bottom}>
           <Text style={styles.bottomText}>Don�t have an account?</Text>
-          <TouchableOpacity activeOpacity={0.85} onPress={() => router.push("/signup")}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => router.push("/signup")}
+          >
             <Text style={styles.signup}> Sign Up</Text>
           </TouchableOpacity>
         </View>

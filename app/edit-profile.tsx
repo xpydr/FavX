@@ -92,46 +92,44 @@ export default function EditProfile() {
     load();
   }, [user]);
 
- const pickImage = async () => {
-   if (!user) return;
+  const pickImage = async () => {
+    if (!user) return;
 
-   const result = await ImagePicker.launchImageLibraryAsync({
-     mediaTypes: ImagePicker.MediaTypeOptions.Images,
-     quality: 0.7,
-   });
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+    });
 
-   if (result.canceled) return;
+    if (result.canceled) return;
 
-   const image = result.assets[0];
-   const response = await fetch(image.uri);
-   const blob = await response.blob();
+    const image = result.assets[0];
+    const response = await fetch(image.uri);
+    const blob = await response.blob();
 
-   const fileExt = image.uri.split(".").pop();
-   const filePath = `${user.id}.${fileExt}`;
+    const fileExt = image.uri.split(".").pop();
+    const filePath = `${user.id}.${fileExt}`;
 
-   try {
-     setUploading(true);
+    try {
+      setUploading(true);
 
-     const { error: uploadError } = await supabase.storage
-       .from("avatars")
-       .upload(filePath, blob, {
-         upsert: true,
-       });
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, blob, {
+          upsert: true,
+        });
 
-     if (uploadError) throw uploadError;
+      if (uploadError) throw uploadError;
 
-     const { data } = supabase.storage
-       .from("avatars")
-       .getPublicUrl(filePath);
+      const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
 
-     setAvatarUrl(data.publicUrl);
-   } catch (err) {
-     console.log("UPLOAD ERROR:", err);
+      setAvatarUrl(data.publicUrl);
+    } catch (err) {
+      console.log("UPLOAD ERROR:", err);
       Alert.alert("Error", "Failed to upload image");
-   } finally {
-     setUploading(false);
-   }
- };
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const resetSkillForm = () => {
     setSkillName("");
@@ -266,6 +264,9 @@ export default function EditProfile() {
       }
 
       router.back();
+    } catch (err) {
+      console.log("SAVE ERROR:", err);
+      Alert.alert("Error", "Something went wrong");
     } finally {
       setSaving(false);
     }
@@ -303,22 +304,20 @@ export default function EditProfile() {
         <View style={{ width: 22 }} />
       </View>
       <View style={styles.avatarWrap}>
-         <Pressable onPress={pickImage}>
+        <Pressable onPress={pickImage}>
           <ExpoImage
-          source={
-            avatarUrl
-              ? { uri: avatarUrl }
-              : require("../assets/icon.png")
-          }
-          style={styles.avatar}
-          contentFit="cover"
-           />
-         </Pressable>
+            source={
+              avatarUrl ? { uri: avatarUrl } : require("../assets/icon.png")
+            }
+            style={styles.avatar}
+            contentFit="cover"
+          />
+        </Pressable>
 
-       <Text style={styles.avatarHint}>
-        {uploading ? "Uploading..." : "Tap to change photo"}
-       </Text>
-     </View>
+        <Text style={styles.avatarHint}>
+          {uploading ? "Uploading..." : "Tap to change photo"}
+        </Text>
+      </View>
       {/* Form */}
       <View style={styles.card}>
         <Text style={styles.label}>Full Name</Text>
@@ -658,6 +657,11 @@ const styles = StyleSheet.create({
     color: "#b45309",
   },
 
+  emptyText: {
+    fontSize: 14,
+    color: "#6b7280",
+  },
+
   centered: {
     flex: 1,
     alignItems: "center",
@@ -699,22 +703,21 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-   avatarWrap: {
-      alignItems: "center",
-      marginBottom: 20,
-    },
+  avatarWrap: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
 
-   avatar: {
-      width: 90,
-      height: 90,
-      borderRadius: 45,
-      backgroundColor: "#e5e7eb",
-    },
+  avatar: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "#e5e7eb",
+  },
 
-   avatarHint: {
-      marginTop: 8,
-      fontSize: 12,
-      color: "#6b7280",
-    }
+  avatarHint: {
+    marginTop: 8,
+    fontSize: 12,
+    color: "#6b7280",
+  },
 });
-
