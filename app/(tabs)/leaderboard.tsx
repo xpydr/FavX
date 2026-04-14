@@ -1,106 +1,60 @@
-// app/(tabs)/leaderboard.tsx
-import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  Pressable,
-} from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { ArrowLeft, Crown } from "lucide-react-native";
 import { Image as ExpoImage } from "expo-image";
-
-//mock data
-const leaderboardData = [
-  {
-    id: "1",
-    name: "Bryan Wolf",
-    points: 43,
-    avatar:
-      "https://images.unsplash.com/photo-1525130413817-d45c1d127c42?q=80&w=400&auto=format&fit=crop",
-    isYou: false,
-  },
-  {
-    id: "2",
-    name: "Meghan Jess",
-    points: 40,
-    avatar:
-      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?q=80&w=400&auto=format&fit=crop",
-    isYou: false,
-  },
-  {
-    id: "3",
-    name: "Alex Turner",
-    points: 38,
-    avatar:
-      "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=400&auto=format&fit=crop",
-    isYou: false,
-  },
-  {
-    id: "4",
-    name: "Marsha Fisher",
-    points: 36,
-    avatar:
-      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=400&auto=format&fit=crop",
-    isYou: false,
-  },
-  {
-    id: "5",
-    name: "Juanita Cormier",
-    points: 35,
-    avatar:
-      "https://images.unsplash.com/photo-1525130413817-d45c1d127c42?q=80&w=400&auto=format&fit=crop",
-    isYou: false,
-  },
-  {
-    id: "6",
-    name: "You",
-    points: 34,
-    avatar:
-      "https://i.pravatar.cc/300?img=13",
-    isYou: true,
-  },
-  {
-    id: "7",
-    name: "Tamara Schmidt",
-    points: 33,
-    avatar:
-      "https://images.unsplash.com/photo-1544723795-3fb0b90cffc6?q=80&w=400&auto=format&fit=crop",
-    isYou: false,
-  },
-  {
-    id: "8",
-    name: "Ricardo Veum",
-    points: 32,
-    avatar:
-      "https://images.unsplash.com/photo-1544723795-3fb0b90cffc7?q=80&w=400&auto=format&fit=crop",
-    isYou: false,
-  },
-  {
-    id: "9",
-    name: "Gary Sanford",
-    points: 31,
-    avatar:
-      "https://images.unsplash.com/photo-1544723795-432537d9b9b2?q=80&w=400&auto=format&fit=crop",
-    isYou: false,
-  },
-  {
-    id: "10",
-    name: "Becky Bartell",
-    points: 30,
-    avatar:
-      "https://images.unsplash.com/photo-1544005313-ff0e4b8c1a9f?q=80&w=400&auto=format&fit=crop",
-    isYou: false,
-  },
-];
+import { supabase } from "../../lib/supabase";
+import { User } from "lucide-react-native";
 
 export default function LeaderboardScreen() {
   const router = useRouter();
+  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
 
+  useEffect(() => {
+    fetchLeaderboard();
+  }, []);
+
+  const fetchLeaderboard = async () => {
+    // current user
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    setUserId(user?.id ?? null);
+
+    // fetch profiles
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, full_name, avatar_url, reputation_score")
+      .order("reputation_score", { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const formatted = (data || []).map((item) => ({
+      id: item.id,
+      name: item.full_name || "User",
+      points: item.reputation_score || 0,
+      avatar: item.avatar_url || null,
+      isYou: item.id === user?.id,
+    }));
+
+    setLeaderboardData(formatted);
+  };
+
+  if (leaderboardData.length === 0) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
   const topThree = leaderboardData.slice(0, 3);
   const rest = leaderboardData.slice(3);
-
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -114,12 +68,15 @@ export default function LeaderboardScreen() {
 
       {/* Top 3 section */}
       <View style={styles.topThreeRow}>
-        {/* 2nd place */}
-        <TopUserCard user={topThree[1]} rank={2} size="small" />
-        {/* 1st place */}
-        <TopUserCard user={topThree[0]} rank={1} size="large" />
-        {/* 3rd place */}
-        <TopUserCard user={topThree[2]} rank={3} size="small" />
+        {topThree[1] && (
+          <TopUserCard user={topThree[1]} rank={2} size="small" />
+        )}
+        {topThree[0] && (
+          <TopUserCard user={topThree[0]} rank={1} size="large" />
+        )}
+        {topThree[2] && (
+          <TopUserCard user={topThree[2]} rank={3} size="small" />
+        )}
       </View>
 
       {/* Rest of the list */}
@@ -132,12 +89,7 @@ export default function LeaderboardScreen() {
             const highlight = item.isYou;
 
             return (
-              <View
-                style={[
-                  styles.row,
-                  highlight && styles.rowHighlight,
-                ]}
-              >
+              <View style={[styles.row, highlight && styles.rowHighlight]}>
                 <View style={styles.rowLeft}>
                   <Text
                     style={[
@@ -148,11 +100,26 @@ export default function LeaderboardScreen() {
                     {rank}
                   </Text>
 
-                  <ExpoImage
-                    source={{ uri: item.avatar }}
-                    style={styles.rowAvatar}
-                    contentFit="cover"
-                  />
+                  {item.avatar ? (
+                    <ExpoImage
+                      source={{ uri: item.avatar }}
+                      style={styles.rowAvatar}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <View
+                      style={[
+                        styles.rowAvatar,
+                        {
+                          backgroundColor: "#e5e7eb",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        },
+                      ]}
+                    >
+                      <User size={16} color="#6b7280" />
+                    </View>
+                  )}
 
                   <Text
                     style={[
@@ -182,13 +149,15 @@ export default function LeaderboardScreen() {
   );
 }
 
-type TopUserCardProps = {
-  user: (typeof leaderboardData)[number];
-  rank: 1 | 2 | 3;
+function TopUserCard({
+  user,
+  rank,
+  size,
+}: {
+  user: any;
+  rank: number;
   size: "small" | "large";
-};
-
-function TopUserCard({ user, rank, size }: TopUserCardProps) {
+}) {
   const isFirst = rank === 1;
   const avatarSize = size === "large" ? 88 : 70;
   const crownOffset = size === "large" ? 18 : 14;
@@ -208,11 +177,26 @@ function TopUserCard({ user, rank, size }: TopUserCardProps) {
           isFirst && styles.topAvatarWrapperFirst,
         ]}
       >
-        <ExpoImage
-          source={{ uri: user.avatar }}
-          style={{ width: avatarSize, height: avatarSize, borderRadius: 999 }}
-          contentFit="cover"
-        />
+        {user.avatar ? (
+          <ExpoImage
+            source={{ uri: user.avatar }}
+            style={{ width: avatarSize, height: avatarSize, borderRadius: 999 }}
+            contentFit="cover"
+          />
+        ) : (
+          <View
+            style={{
+              width: avatarSize,
+              height: avatarSize,
+              borderRadius: 999,
+              backgroundColor: "#e5e7eb",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <User size={avatarSize * 0.5} color="#6b7280" />
+          </View>
+        )}
         <View style={styles.rankBadge}>
           <Text style={styles.rankBadgeText}>{rank}</Text>
         </View>
@@ -330,7 +314,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   rowHighlight: {
-    backgroundColor: "#bfe7f0", 
+    backgroundColor: "#bfe7f0",
   },
   rowLeft: {
     flexDirection: "row",
