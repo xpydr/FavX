@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -17,9 +17,11 @@ import * as ImagePicker from "expo-image-picker";
 import { Image as ExpoImage } from "expo-image";
 import {
   addUserSkill,
+  getSkillCatalog,
   getUserSkillAssignments,
   ProfileSkillAssignment,
   removeUserSkill,
+  Skill,
   updateUserSkill,
 } from "../services/profile";
 
@@ -31,6 +33,7 @@ export default function EditProfile() {
   const [username, setUsername] = useState("");
   const [location, setLocation] = useState("");
   const [skillName, setSkillName] = useState("");
+  const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
   const [editingSkill, setEditingSkill] = useState<ProfileSkillAssignment | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -41,6 +44,7 @@ export default function EditProfile() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [skills, setSkills] = useState<ProfileSkillAssignment[]>([]);
+  const [skillCatalog, setSkillCatalog] = useState<Skill[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -51,13 +55,14 @@ export default function EditProfile() {
       }
 
       try {
-        const [{ data, error }, userSkills] = await Promise.all([
+        const [{ data, error }, userSkills, catalog] = await Promise.all([
           supabase
             .from("profiles")
             .select("full_name, username, location, avatar_url")
             .eq("id", user.id)
             .single(),
           getUserSkillAssignments(user.id),
+          getSkillCatalog(),
         ]);
 
         if (error) {
@@ -74,6 +79,7 @@ export default function EditProfile() {
         }
 
         setSkills(userSkills);
+        setSkillCatalog(catalog);
         setAccessError(null);
       } catch (error) {
         console.log("LOAD ERROR:", error);
@@ -129,15 +135,53 @@ export default function EditProfile() {
 
   const resetSkillForm = () => {
     setSkillName("");
+    setSelectedSkillId(null);
     setEditingSkill(null);
+  };
+
+  const handleSkillInputChange = (value: string) => {
+    setSkillName(value);
+
+    const normalized = value.trim().toLowerCase();
+    const exactMatch = skillCatalog.find((skill) => skill.name.trim().toLowerCase() === normalized);
+
+    setSelectedSkillId(exactMatch?.id ?? null);
+  };
+
+  const filteredSkills = useMemo(() => {
+    const query = skillName.trim().toLowerCase();
+    if (!query) return [];
+
+    const assignedSkillIds = new Set(skills.map((skill) => skill.skill_id));
+    const editingSkillId = editingSkill?.skill_id;
+
+    return skillCatalog
+      .filter((skill) => skill.name.toLowerCase().includes(query))
+      .filter((skill) => !assignedSkillIds.has(skill.id) || skill.id === editingSkillId)
+      .slice(0, 8);
+  }, [editingSkill?.skill_id, skillCatalog, skillName, skills]);
+
+  const hasExactSelectedSkill = Boolean(
+    selectedSkillId &&
+      skillCatalog.some(
+        (skill) =>
+          skill.id === selectedSkillId &&
+          skill.name.trim().toLowerCase() === skillName.trim().toLowerCase()
+      )
+  );
+
+  const showSkillSuggestions = skillName.trim().length > 0 && filteredSkills.length > 0 && !hasExactSelectedSkill;
+
+  const pickSuggestedSkill = (skill: Skill) => {
+    setSkillName(skill.name);
+    setSelectedSkillId(skill.id);
   };
 
   const handleAddOrUpdateSkill = async () => {
     if (!user) return;
 
-    const trimmedSkill = skillName.trim();
-    if (!trimmedSkill) {
-      Alert.alert("Validation", "Skill name is required");
+    if (!selectedSkillId) {
+      Alert.alert("Validation", "Please choose a skill from the suggestions.");
       return;
     }
 
@@ -145,9 +189,9 @@ export default function EditProfile() {
       setSkillsSaving(true);
 
       if (editingSkill) {
-        await updateUserSkill(user.id, editingSkill.id, trimmedSkill);
+        await updateUserSkill(user.id, editingSkill.id, selectedSkillId);
       } else {
-        await addUserSkill(user.id, trimmedSkill);
+        await addUserSkill(user.id, selectedSkillId);
       }
 
       const refreshedSkills = await getUserSkillAssignments(user.id);
@@ -164,6 +208,7 @@ export default function EditProfile() {
   const beginEditSkill = (skill: ProfileSkillAssignment) => {
     setEditingSkill(skill);
     setSkillName(skill.skill?.name ?? "");
+    setSelectedSkillId(skill.skill_id);
   };
 
   const confirmRemoveSkill = (skill: ProfileSkillAssignment) => {
@@ -343,11 +388,29 @@ export default function EditProfile() {
         <Text style={[styles.label, { marginTop: 16 }]}>{editingSkill ? "Update Skill" : "Add Skill"}</Text>
         <TextInput
           value={skillName}
-          onChangeText={setSkillName}
+          onChangeText={handleSkillInputChange}
           style={styles.input}
-          placeholder="Enter a skill name"
+          placeholder="Search skills"
           autoCapitalize="words"
         />
+
+        {showSkillSuggestions ? (
+          <View style={styles.suggestionsList}>
+            {filteredSkills.map((skill) => (
+              <Pressable
+                key={skill.id}
+                style={styles.suggestionItem}
+                onPress={() => pickSuggestedSkill(skill)}
+              >
+                <Text style={styles.suggestionText}>{skill.name}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+
+        {skillName.trim().length > 0 && !selectedSkillId ? (
+          <Text style={styles.selectionHint}>Pick one skill from the suggestions list.</Text>
+        ) : null}
 
         <View style={styles.skillFormActions}>
           {editingSkill ? (
@@ -565,6 +628,34 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 14,
     fontWeight: "700",
+  },
+
+  suggestionsList: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 10,
+    overflow: "hidden",
+    backgroundColor: "#ffffff",
+  },
+
+  suggestionItem: {
+    height: 40,
+    justifyContent: "center",
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f5f9",
+  },
+
+  suggestionText: {
+    fontSize: 14,
+    color: "#0f172a",
+  },
+
+  selectionHint: {
+    marginTop: 8,
+    fontSize: 12,
+    color: "#b45309",
   },
 
   centered: {

@@ -202,19 +202,24 @@ export async function getUserSkillAssignments(userId: string): Promise<ProfileSk
   }));
 }
 
-export async function addUserSkill(userId: string, skillName: string): Promise<void> {
-  const skill = await findOrCreateSkill(skillName);
-  await linkSkillToUser(userId, skill.id);
+export async function addUserSkill(userId: string, skillId: string): Promise<void> {
+  if (!skillId) {
+    throw new Error("Skill is required");
+  }
+
+  await linkSkillToUser(userId, skillId);
 }
 
-export async function updateUserSkill(userId: string, profileSkillId: string, skillName: string): Promise<void> {
-  const skill = await findOrCreateSkill(skillName);
+export async function updateUserSkill(userId: string, profileSkillId: string, skillId: string): Promise<void> {
+  if (!skillId) {
+    throw new Error("Skill is required");
+  }
 
   const { data: existingAssignment, error: existingError } = await supabase
     .from("profile_skills")
     .select("id")
     .eq("profile_id", userId)
-    .eq("skill_id", skill.id)
+    .eq("skill_id", skillId)
     .maybeSingle();
 
   if (existingError) throw existingError;
@@ -232,7 +237,7 @@ export async function updateUserSkill(userId: string, profileSkillId: string, sk
 
   const { error } = await supabase
     .from("profile_skills")
-    .update({ skill_id: skill.id })
+    .update({ skill_id: skillId })
     .eq("id", profileSkillId)
     .eq("profile_id", userId);
 
@@ -247,37 +252,6 @@ export async function removeUserSkill(userId: string, profileSkillId: string): P
     .eq("profile_id", userId);
 
   if (error) throw error;
-}
-
-async function findOrCreateSkill(skillName: string): Promise<ProfileSkill> {
-  const normalizedSkillName = skillName.trim();
-  if (!normalizedSkillName) {
-    throw new Error("Skill name is required");
-  }
-
-  const { data: existingSkills, error: existingError } = await supabase
-    .from("skills")
-    .select("id, name")
-    .order("name", { ascending: true });
-
-  if (existingError) throw existingError;
-
-  const existingSkill = (existingSkills ?? []).find(
-    (skill) => skill.name.trim().toLowerCase() === normalizedSkillName.toLowerCase()
-  );
-
-  if (existingSkill) {
-    return existingSkill;
-  }
-
-  const { data, error } = await supabase
-    .from("skills")
-    .insert({ name: normalizedSkillName })
-    .select("id, name")
-    .single();
-
-  if (error) throw error;
-  return data;
 }
 
 async function linkSkillToUser(userId: string, skillId: string): Promise<void> {
