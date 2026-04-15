@@ -1,69 +1,43 @@
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  Pressable,
-} from "react-native";
+import { View, Text, FlatList, StyleSheet, Pressable } from "react-native";
 import { useRouter } from "expo-router";
-import { ArrowLeft, Bell } from "lucide-react-native"; 
+import { ArrowLeft, Bell } from "lucide-react-native";
+import { useEffect, useState } from "react";
+import { supabase } from "../../lib/supabase";
 
-
-//data
-const notifications = [
-  {
-    id: "1",
-    title: "New favour nearby",
-    body: "Sarah just posted a grocery pick-up favour 1.2km from you.",
-    time: "Just now",
-    status: "success",
-    unread: true,
-  },
-  {
-    id: "2",
-    title: "Your favour was accepted",
-    body: "Daniel agreed to help with your \"Dog walking this afternoon\" favour.",
-    time: "20 mins ago",
-    status: "success",
-    unread: true,
-  },
-  {
-    id: "3",
-    title: "Favour completed",
-    body: "Emily marked your \"Carry boxes upstairs\" favour as completed.",
-    time: "1 hour ago",
-    status: "success",
-    unread: false,
-  },
-  {
-    id: "4",
-    title: "You earned 25 kindness points",
-    body: "Thanks for helping with \"Assemble IKEA shelf\". Points added to your balance.",
-    time: "Yesterday",
-    status: "reward",
-    unread: true,
-  },
-  {
-    id: "5",
-    title: "New message about a favour",
-    body: "Robert sent you a question about your \"Pet sitting this weekend\" favour.",
-    time: "2 days ago",
-    status: "info",
-    unread: false,
-  },
-  {
-    id: "6",
-    title: "Review received",
-    body: "“Super helpful and right on time!” – your rating for the last favour is now 4.9.",
-    time: "3 days ago",
-    status: "info",
-    unread: false,
-  },
-];
-
-//logic
 export default function NotificationsScreen() {
   const router = useRouter();
+  const [notifications, setNotifications] = useState<any[]>([]);
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+  const fetchNotifications = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const formatted = (data || []).map((item) => ({
+      id: item.id,
+      title: mapTitle(item.type),
+      body: item.message,
+      time: formatTime(item.created_at),
+      unread: !item.is_read,
+    }));
+
+    setNotifications(formatted);
+  };
 
   return (
     <View style={styles.container}>
@@ -83,6 +57,15 @@ export default function NotificationsScreen() {
           data={notifications}
           keyExtractor={(item) => item.id}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Bell size={28} color="#9ca3af" />
+              <Text style={styles.emptyTitle}>No notifications yet</Text>
+              <Text style={styles.emptyText}>
+                We don’t have any messages for you yet.
+              </Text>
+            </View>
+          }
           renderItem={({ item }) => (
             <View style={styles.itemRow}>
               {/* Left: bell + text */}
@@ -90,7 +73,7 @@ export default function NotificationsScreen() {
                 <Bell
                   size={22}
                   style={styles.bellIcon}
-                  color={item.unread ? "#15b1c9ff" : "#9ca3af"} 
+                  color={item.unread ? "#15b1c9ff" : "#9ca3af"}
                   strokeWidth={2.2}
                 />
 
@@ -148,7 +131,7 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: "#e5e7eb",
-    marginLeft: 44, 
+    marginLeft: 44,
   },
   itemRow: {
     flexDirection: "row",
@@ -185,4 +168,50 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     marginTop: 4,
   },
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginTop: 12,
+    color: "#111827",
+  },
+  emptyText: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginTop: 4,
+    textAlign: "center",
+  },
 });
+function mapTitle(type: string) {
+  switch (type) {
+    case "favour_request":
+      return "New favour nearby";
+    case "favour_accepted":
+      return "Your favour was accepted";
+    case "favour_completed":
+      return "Favour completed";
+    case "review_received":
+      return "Review received";
+    case "credit_earned":
+      return "You earned points";
+    case "system_alert":
+      return "System alert";
+    default:
+      return "Notification";
+  }
+}
+
+function formatTime(date: string) {
+  const now = new Date();
+  const created = new Date(date);
+  const diff = Math.floor((now.getTime() - created.getTime()) / 1000);
+
+  if (diff < 60) return "Just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)} mins ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
+  return created.toLocaleDateString();
+}
