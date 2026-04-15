@@ -501,6 +501,9 @@ export default function PostFavourScreen() {
 
           {/* Credit reward */}
           <Text style={styles.label}>Credit reward</Text>
+          <Text style={{ marginBottom: 6, color: "#6b7280" }}>
+            Available: {user?.credit_balance ?? 0} credits
+          </Text>
           <TextInput
             placeholder="0"
             value={creditReward}
