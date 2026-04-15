@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { BadgeCheck, ChevronLeft, Star } from "lucide-react-native";
+import { BadgeCheck, ChevronLeft, Star, MapPin } from "lucide-react-native";
 import {
   ActivityIndicator,
   Alert,
@@ -14,6 +14,7 @@ import {
 } from "react-native";
 
 import { FavourDetails, getFavourDetailsById } from "../../services/favour";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 
 export default function FavourDetailsScreen() {
   const router = useRouter();
@@ -70,6 +71,9 @@ export default function FavourDetailsScreen() {
   }
 
   const rating = "N/A";
+  const latitude = Number(favour.latitude)
+  const longitude = Number(favour.longitude)
+  const hasValidCoords = !isNaN(latitude) && !isNaN(longitude);
 
   return (
     <View style={styles.container}>
@@ -80,11 +84,33 @@ export default function FavourDetailsScreen() {
         </Pressable>
 
         <View style={styles.card}>
-          <ExpoImage
-            source={require("../../assets/icon.png")}
-            contentFit="cover"
-            style={styles.heroImage}
-          />
+          
+          {hasValidCoords ? (
+            <MapView
+              provider={PROVIDER_GOOGLE}
+              style={styles.map}
+              initialRegion={{
+                latitude,
+                longitude,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01
+              }}
+              scrollEnabled={false}
+              zoomEnabled={false}
+              rotateEnabled={false}
+              pitchEnabled={false}
+            >
+              <Marker
+                coordinate={{latitude, longitude}}
+                pinColor="#15b1c9"
+              />
+            </MapView>
+          ) : (
+            <View style={styles.mapFallback}>
+              <MapPin size={24} color="#9ca3af" />
+              <Text style={styles.mapFallbackText}>Location unavailable</Text>
+            </View>  
+          )}
 
           <Text style={styles.caption}>Favour requested by</Text>
 
@@ -176,11 +202,26 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
-  heroImage: {
+  map: {
     width: "100%",
     height: 142,
     borderRadius: 10,
     marginBottom: 12,
+    overflow: "hidden",
+  },
+  mapFallback: {
+    width: "100%",
+    height: 142,
+    borderRadius: 10,
+    marginBottom: 12,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  mapFallbackText: {
+    fontSize: 13,
+    color: "#9ca3af",
   },
   caption: {
     fontSize: 12,
