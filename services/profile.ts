@@ -13,6 +13,11 @@ export interface Profile {
   created_at: Date | string;
 }
 
+export interface Skill {
+  id: string;
+  name: string;
+}
+
 export interface CreateProfileInput {
   id: string;
   username: string;
@@ -27,6 +32,13 @@ export interface CreateProfileInput {
 export interface ProfileSkill {
   id: string;
   name: string;
+}
+
+export interface ProfileSkillAssignment {
+  id: string;
+  profile_id: string;
+  skill_id: string;
+  skill: ProfileSkill;
 }
 
 export interface VerifiedReview {
@@ -152,6 +164,114 @@ async function getProfileSkills(userId: string): Promise<ProfileSkill[]> {
        return [];
      }
    }
+
+export async function getSkillCatalog(): Promise<Skill[]> {
+  const { data, error } = await supabase
+    .from("skills")
+    .select("id, name")
+    .order("name", { ascending: true });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getUserSkillAssignments(userId: string): Promise<ProfileSkillAssignment[]> {
+  const { data, error } = await supabase
+    .from("profile_skills")
+    .select(
+      `
+        id,
+        profile_id,
+        skill_id,
+        skill:skill_id (
+          id,
+          name
+        )
+      `
+    )
+    .eq("profile_id", userId)
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    profile_id: row.profile_id,
+    skill_id: row.skill_id,
+    skill: Array.isArray(row.skill) ? row.skill[0] : row.skill,
+  }));
+}
+
+export async function addUserSkill(userId: string, skillId: string): Promise<void> {
+  if (!skillId) {
+    throw new Error("Skill is required");
+  }
+
+  await linkSkillToUser(userId, skillId);
+}
+
+export async function updateUserSkill(userId: string, profileSkillId: string, skillId: string): Promise<void> {
+  if (!skillId) {
+    throw new Error("Skill is required");
+  }
+
+  const { data: existingAssignment, error: existingError } = await supabase
+    .from("profile_skills")
+    .select("id")
+    .eq("profile_id", userId)
+    .eq("skill_id", skillId)
+    .maybeSingle();
+
+  if (existingError) throw existingError;
+
+  if (existingAssignment && existingAssignment.id !== profileSkillId) {
+    const { error: deleteError } = await supabase
+      .from("profile_skills")
+      .delete()
+      .eq("id", profileSkillId)
+      .eq("profile_id", userId);
+
+    if (deleteError) throw deleteError;
+    return;
+  }
+
+  const { error } = await supabase
+    .from("profile_skills")
+    .update({ skill_id: skillId })
+    .eq("id", profileSkillId)
+    .eq("profile_id", userId);
+
+  if (error) throw error;
+}
+
+export async function removeUserSkill(userId: string, profileSkillId: string): Promise<void> {
+  const { error } = await supabase
+    .from("profile_skills")
+    .delete()
+    .eq("id", profileSkillId)
+    .eq("profile_id", userId);
+
+  if (error) throw error;
+}
+
+async function linkSkillToUser(userId: string, skillId: string): Promise<void> {
+  const { data: existingAssignment, error: existingError } = await supabase
+    .from("profile_skills")
+    .select("id")
+    .eq("profile_id", userId)
+    .eq("skill_id", skillId)
+    .maybeSingle();
+
+  if (existingError) throw existingError;
+  if (existingAssignment) return;
+
+  const { error } = await supabase.from("profile_skills").insert({
+    profile_id: userId,
+    skill_id: skillId,
+  });
+
+  if (error) throw error;
+}
 
 async function getVerifiedReviews(userId: string): Promise<VerifiedReview[]> {
   const { data: reviews, error: reviewsError } = await supabase

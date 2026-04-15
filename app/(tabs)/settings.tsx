@@ -1,11 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Switch,
-} from "react-native";
+import { View, Text, StyleSheet, Pressable, Switch } from "react-native";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { useRouter } from "expo-router";
@@ -23,23 +17,25 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState<any>(null);
 
-useEffect(() => {
-  if (!user) return;
+  useEffect(() => {
+    if (!user) {
+      router.replace("/login");
+    }
 
-  const loadProfile = async () => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("full_name, username, avatar_url")
-      .eq("id", user.id)
-      .single();
+    const loadProfile = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, username, avatar_url")
+        .eq("id", user?.id)
+        .single();
 
-    setProfile(data);
-  };
+      setProfile(data);
+    };
 
-  loadProfile();
-}, [user]);
+    loadProfile();
+  }, [user]);
 
   return (
     <View style={styles.container}>
@@ -53,19 +49,24 @@ useEffect(() => {
       </View>
 
       {/* Profile card */}
-      <Pressable style={styles.profileCard} onPress={() => router.push("/profile")}>
+      <Pressable
+        style={styles.profileCard}
+        onPress={() => router.push("/profile")}
+      >
         <View style={styles.profileLeft}>
           <ExpoImage
             source={{
-              uri: profile?.avatar_url || "https://i.pinimg.com/736x/0d/34/fc/0d34fcc9eca1545e5103ae668c339576.jpg",
+              uri:
+                profile?.avatar_url ||
+                "https://i.pinimg.com/736x/0d/34/fc/0d34fcc9eca1545e5103ae668c339576.jpg",
             }}
             style={styles.avatar}
             contentFit="cover"
           />
           <View>
-           <Text style={styles.profileName}>
-             {profile?.full_name || profile?.username || "User"}
-           </Text>
+            <Text style={styles.profileName}>
+              {profile?.full_name || profile?.username || "User"}
+            </Text>
             <Text style={styles.profileSubtitle}>Edit personal details</Text>
           </View>
         </View>
@@ -77,7 +78,7 @@ useEffect(() => {
         {/* Edit Profile */}
         <Pressable
           style={styles.row}
-          onPress={() =>  router.push("/edit-profile") }
+          onPress={() => router.push("/edit-profile")}
         >
           <View style={styles.rowLeft}>
             <View style={styles.iconCircle}>
@@ -119,10 +120,7 @@ useEffect(() => {
         </View>
 
         {/* Language */}
-        <Pressable
-          style={styles.row}
-          onPress={() => router.push("/language")}
-        >
+        <Pressable style={styles.row} onPress={() => router.push("/language")}>
           <View style={styles.rowLeft}>
             <View style={styles.iconCircle}>
               <Globe2 size={18} color="#15b1c9ff" />
