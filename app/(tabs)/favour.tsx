@@ -1,9 +1,9 @@
+import { useEffect } from "react";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
 import * as ExpoLocation from "expo-location";
 import { Calendar, ChevronLeft, MapPin, Search, X } from "lucide-react-native";
 import { useRef, useState } from "react";
-import { createFavour } from "../../services/favour";
 import {
   ActivityIndicator,
   Alert,
@@ -26,14 +26,13 @@ interface LocationType {
 }
 
 export default function PostFavourScreen() {
-  const user = { id: "33333333-3333-3333-3333-333333333333" }; // Mock user for demonstration purposes - useAuth() in later development
+  const [user, setUser] = useState<any>(null);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("Errands");
   const [type, setType] = useState("");
   const [description, setDescription] = useState("");
   const [creditReward, setCreditReward] = useState("0");
   const [useMyLocation, setUseMyLocation] = useState(false);
-  const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<LocationType | null>(
@@ -57,6 +56,23 @@ export default function PostFavourScreen() {
   const [expiryDate, setExpiryDate] = useState(
     new Date(Date.now() + 60 * 60 * 1000),
   );
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+
+      if (!authData?.user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id, credit_balance")
+        .eq("id", authData.user.id)
+        .single();
+
+      setUser(profile);
+    };
+
+    fetchUser();
+  }, []);
 
   // Load react-native-maps only when map modal is opened
   const loadMapsModule = () => {
@@ -344,6 +360,18 @@ export default function PostFavourScreen() {
       return;
     }
 
+    const reward = Number(creditReward) || 0;
+
+    if (reward <= 0) {
+      Alert.alert("Invalid Reward", "You must offer at least 1 credit.");
+      return;
+    }
+
+    if (user && reward > user.credit_balance) {
+      Alert.alert("Not enough credits", "You don't have enough credits.");
+      return;
+    }
+
     // expiry validation
     if (hasExpiry && expiryDate <= new Date()) {
       Alert.alert("Invalid Expiry", "Please choose a future time.");
@@ -366,7 +394,7 @@ export default function PostFavourScreen() {
         p_location: locationString,
         p_latitude: selectedLocation.latitude,
         p_longitude: selectedLocation.longitude,
-        p_credit_reward: Number(creditReward) || 0,
+        p_credit_reward: reward,
         p_expires_at: hasExpiry ? expiryDate.toISOString() : null,
       });
 
@@ -553,13 +581,13 @@ export default function PostFavourScreen() {
 
           {showDatePicker && (
             <DateTimePicker
-              value={date}
-              mode="date"
+              value={expiryDate}
+              mode="datetime"
               minimumDate={new Date()}
               display={Platform.OS === "ios" ? "spinner" : "default"}
               onChange={(event, selectedDate) => {
                 setShowDatePicker(Platform.OS === "ios");
-                if (selectedDate) setDate(selectedDate);
+                if (selectedDate) setExpiryDate(selectedDate);
               }}
             />
           )}
