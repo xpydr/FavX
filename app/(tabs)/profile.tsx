@@ -3,9 +3,7 @@ import { Image as ExpoImage } from "expo-image";
 import { useCallback, useState } from "react";
 import { BadgeCheck, MapPin, Star } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import {
-  ArrowLeft,
-} from "lucide-react-native";
+import { ArrowLeft } from "lucide-react-native";
 import {
   ActivityIndicator,
   Pressable,
@@ -19,23 +17,23 @@ import { supabase } from "../../lib/supabase";
 import { getProfileOverview, ProfileOverview } from "../../services/profile";
 
 export default function ProfileScreen() {
-    const router = useRouter();
-    const [overview, setOverview] = useState<ProfileOverview | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const [overview, setOverview] = useState<ProfileOverview | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    const loadProfile = useCallback(async () => {
-        setLoading(true);
-        setError(null);
+  const loadProfile = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
     try {
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      const { data: sessionData, error: sessionError } =
+        await supabase.auth.getSession();
       if (sessionError) throw sessionError;
 
       const userId = sessionData.session?.user?.id;
       if (!userId) {
-        setOverview(null);
-        setError("Sign in to view your profile.");
+        router.replace("/login");
         return;
       }
 
@@ -55,7 +53,7 @@ export default function ProfileScreen() {
   useFocusEffect(
     useCallback(() => {
       loadProfile();
-    }, [loadProfile])
+    }, [loadProfile]),
   );
 
   if (loading) {
@@ -77,24 +75,29 @@ export default function ProfileScreen() {
     );
   }
 
-  const { profile, skills, completedFavours, requestedFavours, verifiedReviews } = overview;
+  const {
+    profile,
+    skills,
+    completedFavours,
+    requestedFavours,
+    verifiedReviews,
+  } = overview;
   const ratingValue =
     typeof overview.avgRating === "number"
       ? overview.avgRating.toFixed(1)
       : "N/A";
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-       {/* Header */}
-       <View style={styles.headerRow}>
-         <Pressable onPress={() => router.back()} hitSlop={12}>
-           <ArrowLeft size={23} color="#15b1c9ff"/>
-         </Pressable>
-         <Text style={styles.headerTitle}>My Profile</Text>
-         <View style={{ width: 22 }} />
-       </View>
-        <View style={styles.card}>
+      {/* Header */}
+      <View style={styles.headerRow}>
+        <Pressable onPress={() => router.back()} hitSlop={12}>
+          <ArrowLeft size={23} color="#15b1c9ff" />
+        </Pressable>
+        <Text style={styles.headerTitle}>My Profile</Text>
+        <View style={{ width: 22 }} />
+      </View>
+      <View style={styles.card}>
         <View style={styles.headerRow}>
-
           <ExpoImage
             source={
               profile.avatar_url
@@ -108,11 +111,15 @@ export default function ProfileScreen() {
           <View style={styles.headerMeta}>
             <View style={styles.locationRow}>
               <MapPin size={13} color="#6b7280" />
-              <Text style={styles.locationText}>{profile.location || "Location not set"}</Text>
+              <Text style={styles.locationText}>
+                {profile.location || "Location not set"}
+              </Text>
             </View>
 
             <View style={styles.nameRow}>
-              <Text style={styles.name}>{profile.full_name || profile.username}</Text>
+              <Text style={styles.name}>
+                {profile.full_name || profile.username}
+              </Text>
               {profile.is_verified && (
                 <BadgeCheck size={16} color="#15b1c9ff" fill="#15b1c9ff" />
               )}
@@ -172,11 +179,17 @@ export default function ProfileScreen() {
                 />
 
                 <View style={styles.reviewMeta}>
-                  <Text style={styles.reviewHeader}>{review.reviewer_name}</Text>
-                  <Text style={styles.reviewRating}>{review.rating.toFixed(1)}</Text>
+                  <Text style={styles.reviewHeader}>
+                    {review.reviewer_name}
+                  </Text>
+                  <Text style={styles.reviewRating}>
+                    {review.rating.toFixed(1)}
+                  </Text>
                 </View>
               </View>
-              <Text style={styles.reviewBody}>{review.comment || "No comment provided."}</Text>
+              <Text style={styles.reviewBody}>
+                {review.comment || "No comment provided."}
+              </Text>
             </View>
           ))
         ) : (
@@ -184,13 +197,13 @@ export default function ProfileScreen() {
         )}
       </View>
       <View style={styles.editBtnWrap}>
-            <Pressable
-              style={styles.editBtn}
-              onPress={() => router.push("/edit-profile")}
-            >
-              <Text style={styles.editBtnText}>Edit Profile</Text>
-            </Pressable>
-          </View>
+        <Pressable
+          style={styles.editBtn}
+          onPress={() => router.push("/edit-profile")}
+        >
+          <Text style={styles.editBtnText}>Edit Profile</Text>
+        </Pressable>
+      </View>
     </ScrollView>
   );
 }
@@ -231,18 +244,18 @@ const styles = StyleSheet.create({
   },
 
   headerRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: 16,
-    },
-   headerTitle: {
-      fontSize: 23,
-      fontWeight: "800",
-      color: "#15b1c9ff",
-      textAlign: "center",
-      flex: 1,
-    },
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  headerTitle: {
+    fontSize: 23,
+    fontWeight: "800",
+    color: "#15b1c9ff",
+    textAlign: "center",
+    flex: 1,
+  },
   avatar: {
     width: 72,
     height: 72,
