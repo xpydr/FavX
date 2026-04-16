@@ -18,8 +18,7 @@ import {
     getInProgressFavoursAsHelper
 } from "../../services/favour";
 import { useCallback, useEffect, useState, useRef } from 'react';
-
-const MOCK_USER_ID = "33333333-3333-3333-3333-333333333333";
+import { useAuth } from '../../context/AuthContext';
 
 const {width: SCREEN_WIDTH} = Dimensions.get("window");
 
@@ -76,13 +75,15 @@ function EmptyState({message}: {message: string}) {
 // open tab
 function OpenTab(){
 
+    const { user } = useAuth();
     const [favours, setFavours] = useState<Favour[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
 
-        getOpenFavoursByUser(MOCK_USER_ID)
+        if(!user?.id) return;
+        getOpenFavoursByUser(user.id)
             .then(setFavours)
             .catch(() => setError("Failed to load open favours."))
             .finally(() => setLoading(false));
@@ -121,6 +122,7 @@ function OpenTab(){
 // in progress tab
 function InProgressTab(){
 
+    const {user} = useAuth();
     const [asRequester, setAsRequester] = useState<Favour[]>([]);
     const [asHelper, setAsHelper] = useState<Favour[]>([]);
     const [loading, setLoading] = useState(true);
@@ -129,9 +131,11 @@ function InProgressTab(){
 
     useEffect(() => {
 
+        if (!user?.id) return;
+
         Promise.all([
-            getInProgressFavoursAsRequester(MOCK_USER_ID),
-            getInProgressFavoursAsHelper(MOCK_USER_ID)
+            getInProgressFavoursAsRequester(user.id),
+            getInProgressFavoursAsHelper(user.id)
         ])
             .then(([requesterData, helperData]) => {
                 setAsRequester(requesterData);
