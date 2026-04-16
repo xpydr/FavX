@@ -105,7 +105,7 @@ export async function getOpenFavoursByUser(userId: string): Promise<Favour[]> {
     return data;
   }
 
-  export async function getInProgressFavourAsRequester(userId: string): Promise<Favour[]> {
+  export async function getInProgressFavoursAsRequester(userId: string): Promise<Favour[]> {
     const {data, error} = await supabase
       .from("favours")
       .select("*")
@@ -117,7 +117,7 @@ export async function getOpenFavoursByUser(userId: string): Promise<Favour[]> {
       return data;
   }
 
-    export async function getInProgressFavourAsHelper(userId: string): Promise<Favour[]> {
+    export async function getInProgressFavoursAsHelper(userId: string): Promise<Favour[]> {
     const {data, error} = await supabase
       .from("favours")
       .select("*")
