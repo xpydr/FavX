@@ -92,3 +92,15 @@ export async function deleteFavour(id: string) {
   if (error) throw error;
   return data;
 }
+
+export async function getOpenFavoursByUser(userId: string): Promise<Favour[]> {
+  const {data, error} = await supabase
+    .from("favours")
+    .select("*")
+    .eq("requestor_id", userId)
+    .eq("status", "posted")
+    .order("posted_at", {ascending: false});
+
+    if (error) throw error;
+    return data;
+  }
