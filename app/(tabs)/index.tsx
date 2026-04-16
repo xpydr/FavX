@@ -43,6 +43,7 @@ export type FavourListItem = {
   date: string;
   image: string | null;
   category: string;
+  expires_at?: string | null;
 };
 
 function formatFavourDate(postedAt: Date | string): string {
@@ -70,6 +71,7 @@ function mapApiFavourToListItem(row: {
   category: string;
   location: string;
   posted_at: Date | string;
+  expires_at?: string | null;
 }): FavourListItem {
   return {
     id: String(row.id),
@@ -79,9 +81,38 @@ function mapApiFavourToListItem(row: {
     date: formatFavourDate(row.posted_at),
     image: null, // images not in scope for fetched favours
     category: row.category ?? "Other",
+    expires_at: row.expires_at ?? null,
   };
 }
 
+const getExpiryLabel = (expiresAt?: string | null) => {
+  if (!expiresAt) return null;
+
+  const now = new Date();
+  const expiry = new Date(expiresAt);
+
+  const diffMs = expiry.getTime() - now.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = diffMs / (1000 * 60 * 60);
+
+  if (diffMs <= 0) return "Expired";
+
+  if (diffMinutes <= 1) return "Expires in less than a minute";
+  if (diffMinutes < 60) return `Expires in ${diffMinutes} minutes`;
+
+  if (diffHours <= 24) return "Expiring soon";
+
+  const isToday = expiry.toDateString() === now.toDateString();
+
+  if (isToday) {
+    return `Expires today at ${expiry.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    })}`;
+  }
+
+  return null;
+};
 const filters = ["All", "Errands", "Tutoring"];
 
 export default function HomeScreen() {
@@ -247,6 +278,7 @@ export default function HomeScreen() {
               </View>
             }
             renderItem={({ item }) => {
+              const expiryLabel = getExpiryLabel(item.expires_at);
               return (
                 <Pressable
                   style={styles.cardPressable}
@@ -280,6 +312,17 @@ export default function HomeScreen() {
                       <Text style={styles.cardDescription}>
                         {item.description}
                       </Text>
+                      {expiryLabel && (
+                        <Text
+                          style={{
+                            color: "#ef4444",
+                            fontSize: 12,
+                            marginTop: 4,
+                          }}
+                        >
+                          {expiryLabel}
+                        </Text>
+                      )}
                       <View style={styles.cardFooter}>
                         <Text style={styles.cardFooterText}>
                           <MapPin size={20} color="#15b1c9ff" /> {item.distance}
