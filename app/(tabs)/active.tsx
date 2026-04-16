@@ -17,7 +17,7 @@ import {
     getInProgressFavoursAsRequester,
     getInProgressFavoursAsHelper
 } from "../../services/favour";
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 
 const MOCK_USER_ID = "33333333-3333-3333-3333-333333333333";
 
@@ -217,18 +217,184 @@ function InProgressTab(){
 }
 
 // main screen
-
-
-
-
-
-
 export default function ActiveFavoursScreen() {
-    
 
+    const [activeTab, setActiveTab] = useState<"open" | "inprogress">("open");
+    const scrollRef = useRef<ScrollView>(null);
+
+    const handleTabPress = useCallback((tab: "open" | "inprogress", index: number) => {
+        setActiveTab(tab);
+        scrollRef.current?.scrollTo({ x: index * SCREEN_WIDTH, animated: true });
+    }, []);
+
+    const handleScrollEnd = useCallback((e: any) => {
+        const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+        setActiveTab(index === 0 ? "open" : "inprogress");
+    }, []);
+
+    return (
+
+        <View style={styles.container}>
+            
+            {/* Header */}
+            <View style={styles.header}>
+                <Text style={styles.headerTitle}>Active Favours</Text>
+            </View>
+        
+            {/* Tab bar */}
+            <View style={styles.tabBar}>
+                <Pressable
+                    style={styles.tabItem}
+                    onPress={() => handleTabPress("open", 0)}
+                >
+                    <Text
+                        style={[
+                        styles.tabLabel,
+                        activeTab === "open" && styles.tabLabelActive,
+                        ]}
+                        >Open
+                    </Text>
+                    {activeTab === "open" && <View style={styles.tabIndicator} />}
+                </Pressable>
+        
+                <Pressable
+                    style={styles.tabItem}
+                    onPress={() => handleTabPress("inprogress", 1)}
+                >
+                    <Text
+                        style={[
+                        styles.tabLabel,
+                        activeTab === "inprogress" && styles.tabLabelActive,
+                        ]}
+                        >In-Progress
+                    </Text>
+                    {activeTab === "inprogress" && <View style={styles.tabIndicator} />}
+                </Pressable>
+            </View>
+    
+            {/* Swipeable content */}
+            <ScrollView
+                ref={scrollRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={handleScrollEnd}
+                scrollEventThrottle={16}
+                style={styles.swipeScroll}
+            >
+                <View style={{ width: SCREEN_WIDTH }}>
+                    <OpenTab />
+                </View>
+                <View style={{ width: SCREEN_WIDTH }}>
+                    <InProgressTab />
+                </View>
+            </ScrollView>
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
+
+    container: {
+        flex: 1,
+        backgroundColor: "#f8fafc",
+    },
+
+    centered: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingTop: 60,
+    },
+ 
+    // header
+    header: {
+        paddingTop: 60,
+        paddingBottom: 16,
+        paddingHorizontal: 20,
+        backgroundColor: "#fff",
+        borderBottomWidth: 1,
+        borderBottomColor: "#e5e7eb",
+    },
+    headerTitle: {
+        fontSize: 26,
+        fontWeight: "700",
+        color: "#15b1c9",
+    },
+ 
+    // tab bar
+    tabBar: {
+        flexDirection: "row",
+        backgroundColor: "#fff",
+        borderBottomWidth: 1,
+        borderBottomColor: "#e5e7eb",
+    },
+    tabItem: {
+        flex: 1,
+        alignItems: "center",
+        paddingVertical: 12,
+    },
+    tabLabel: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: "#94a3b8",
+    },
+    tabLabelActive: {
+        color: "#15b1c9",
+    },
+    tabIndicator: {
+        position: "absolute",
+        bottom: 0,
+        height: 3,
+        width: "50%",
+        backgroundColor: "#15b1c9",
+        borderRadius: 2,
+    },
+ 
+    // swipe scroll
+    swipeScroll: {
+        flex: 1,
+    },
+ 
+    // list
+    listContent: {
+        padding: 16,
+        gap: 12,
+    },
+
+    // role switcher (in-progress tab)
+    inProgressContainer: {
+        flex: 1,
+    },
+    roleSwitcher: {
+        flexDirection: "row",
+        margin: 16,
+        backgroundColor: "#e5e7eb",
+        borderRadius: 10,
+        padding: 4,
+    },
+    roleSwitcherBtn: {
+        flex: 1,
+        paddingVertical: 8,
+        alignItems: "center",
+        borderRadius: 8,
+    },
+    roleSwitcherBtnActive: {
+        backgroundColor: "#fff",
+        shadowColor: "#000",
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 1 },
+        elevation: 2,
+    },
+    roleSwitcherText: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: "#94a3b8",
+    },
+    roleSwitcherTextActive: {
+        color: "#15b1c9",
+    },
 
     // favour card
     card: {
@@ -273,6 +439,8 @@ const styles = StyleSheet.create({
         color: "#15b1c9",
         fontWeight: "500",
     },
+
+    // empty state
     emptyState: {
         flex: 1,
         justifyContent: "center",
@@ -285,7 +453,5 @@ const styles = StyleSheet.create({
         color: "#9ca3af",
         textAlign: "center",
     }
-
-
 
 })
