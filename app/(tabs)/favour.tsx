@@ -1,9 +1,10 @@
-import { useEffect } from "react";
 import { useRouter } from "expo-router";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
 import * as ExpoLocation from "expo-location";
 import { Calendar, ChevronLeft, MapPin, Search, X } from "lucide-react-native";
+import { useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 import { useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -59,31 +60,42 @@ export default function PostFavourScreen() {
   const [expiryDate, setExpiryDate] = useState(
     new Date(Date.now() + 60 * 60 * 1000),
   );
-  useEffect(() => {
-    const fetchUser = async () => {
-      const { data: authData } = await supabase.auth.getUser();
 
-      if (!authData?.user) {
-        router.replace("/login");
-        return;
-      }
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setCategory("Errands");
+    setType("");
+    setCreditReward("0");
+    setSelectedLocation(null);
+    setUseMyLocation(false);
+    setHasExpiry(false);
+    setExpiryDate(new Date(Date.now() + 60 * 60 * 1000));
+  };
+  useFocusEffect(
+    useCallback(() => {
+      const fetchUser = async () => {
+        const { data: authData } = await supabase.auth.getUser();
 
-      const { data: profile, error } = await supabase
-        .from("profiles")
-        .select("id, credit_balance")
-        .eq("id", authData.user.id)
-        .single();
+        if (!authData?.user) {
+          router.replace("/login");
+          return;
+        }
 
-      if (error || !profile) {
-        console.error("Profile fetch error:", error);
-        return;
-      }
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("id, credit_balance")
+          .eq("id", authData.user.id)
+          .single();
 
-      setUser(profile);
-    };
+        setUser(profile);
 
-    fetchUser();
-  }, []);
+        resetForm();
+      };
+
+      fetchUser();
+    }, []),
+  );
 
   // Load react-native-maps only when map modal is opened
   const loadMapsModule = () => {
