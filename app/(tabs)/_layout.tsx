@@ -34,7 +34,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="active"
         options={{
-          title: "Active Favours",
+          title: "Active Favs",
           tabBarIcon: ({ color }) => (
             <Hand size={28} color={color} strokeWidth={2.5} />
           ),
