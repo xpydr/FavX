@@ -13,6 +13,7 @@ export interface Favour {
   status: string;
   credit_reward: number;
   posted_at: Date | string;
+  expires_at?: Date | string | null;
   accepted_at?: Date | string;
   completed_at?: Date | string;
 }
@@ -38,7 +39,11 @@ export interface CreateFavourInput {
 }
 
 export async function getFavours(): Promise<Favour[]> {
-  const { data, error } = await supabase.from("favours").select("*");
+  const { data, error } = await supabase
+    .from("favours")
+    .select(
+      "id, requester_id, helper_id, category, title, description, type, location, latitude, longitude, status, credit_reward, posted_at, expires_at, accepted_at, completed_at",
+    );
   if (error) throw error;
   return data;
 }

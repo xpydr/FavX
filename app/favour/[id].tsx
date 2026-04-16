@@ -16,14 +16,17 @@ import {
 import { FavourDetails, getFavourDetailsById } from "../../services/favour";
 import { supabase } from "../../lib/supabase";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import { useAuth } from "../../context/AuthContext";
 
 export default function FavourDetailsScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [favour, setFavour] = useState<FavourDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rating, setRating] = useState<number | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -78,6 +81,81 @@ export default function FavourDetailsScreen() {
     };
   }, [id]);
 
+  const refreshFavour = async () => {
+    if (!id) return;
+    const updated = await getFavourDetailsById(id);
+    setFavour(updated);
+  };
+
+  const handleAcceptFavour = async () => {
+    if (!favour || !user?.id) return;
+
+    if (user.id === favour.requester_id) {
+      Alert.alert("Not allowed", "You cannot accept a favour you posted.");
+      return;
+    }
+
+    setActionLoading(true);
+
+    try {
+      const { data, error: acceptError } = await supabase
+        .from("favours")
+        .update({
+          helper_id: user.id,
+          status: "accepted",
+          accepted_at: new Date().toISOString(),
+        })
+        .eq("id", favour.id)
+        .is("helper_id", null)
+        .neq("requester_id", user.id)
+        .neq("status", "completed")
+        .select("id")
+        .maybeSingle();
+
+      if (acceptError) throw acceptError;
+
+      if (!data) {
+        Alert.alert(
+          "Unavailable",
+          "This favour has already been accepted by another user.",
+        );
+        await refreshFavour();
+        return;
+      }
+
+      await refreshFavour();
+      Alert.alert("Accepted", "You are now the helper for this favour.");
+    } catch (acceptError: any) {
+      Alert.alert("Error", acceptError?.message || "Failed to accept favour.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleConfirmCompletion = async () => {
+    if (!favour) return;
+
+    setActionLoading(true);
+
+    try {
+      const { error: completeError } = await supabase.rpc("complete_favour", {
+        favour_id: favour.id,
+      });
+
+      if (completeError) throw completeError;
+
+      await refreshFavour();
+      Alert.alert("Completed", "Favour marked as completed.");
+    } catch (completeError: any) {
+      Alert.alert(
+        "Error",
+        completeError?.message || "Failed to confirm completion.",
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -97,6 +175,33 @@ export default function FavourDetailsScreen() {
   const latitude = Number(favour.latitude)
   const longitude = Number(favour.longitude)
   const hasValidCoords = !isNaN(latitude) && !isNaN(longitude);
+  const expiryDate = favour.expires_at ? new Date(favour.expires_at) : null;
+  const hasExpiry = Boolean(expiryDate && !isNaN(expiryDate.getTime()));
+  const isExpired = Boolean(
+    hasExpiry && expiryDate && expiryDate.getTime() <= Date.now(),
+  );
+  const status = (favour.status || "").toLowerCase();
+  const isCompleted = status === "completed" || Boolean(favour.completed_at);
+  const isAccepted = status === "accepted" || Boolean(favour.helper_id);
+  const isRequester = user?.id === favour.requester_id;
+  const isHelper = user?.id === favour.helper_id;
+  const canAccept =
+    Boolean(user?.id) && !isRequester && !isAccepted && !isCompleted && !isExpired;
+  const canConfirmCompletion =
+    Boolean(user?.id) && isRequester && isAccepted && !isCompleted;
+
+  let actionLabel = "Unavailable";
+  if (!user) actionLabel = "Sign in to Accept";
+  else if (canConfirmCompletion) actionLabel = "Confirm Completion";
+  else if (canAccept) actionLabel = "Accept Favour";
+  else if (isExpired) actionLabel = "Favour Expired";
+  else if (isCompleted) actionLabel = "Favour Completed";
+  else if (isHelper) actionLabel = "You Accepted This Favour";
+  else if (isRequester) actionLabel = "Waiting for Helper";
+  else if (isAccepted) actionLabel = "Already Accepted";
+
+  const isActionDisabled =
+    actionLoading || (!canAccept && !canConfirmCompletion && Boolean(user));
 
   return (
     <View style={styles.container}>
@@ -179,17 +284,46 @@ export default function FavourDetailsScreen() {
           <Text style={styles.description}>{favour.description}</Text>
 
           <Pressable
-            onPress={() =>
-              Alert.alert("Coming soon", "Accept flow will be wired next.")
-            }
+            disabled={isActionDisabled}
+            onPress={() => {
+              if (!user) {
+                router.push("/login");
+                return;
+              }
+
+              if (canConfirmCompletion) {
+                handleConfirmCompletion();
+                return;
+              }
+
+              if (isExpired) {
+                Alert.alert(
+                  "Expired",
+                  "This favour has expired and can no longer be accepted.",
+                );
+                return;
+              }
+
+              if (canAccept) {
+                handleAcceptFavour();
+              }
+            }}
           >
             <LinearGradient
-              colors={["#4fb8cc", "#239ab2"]}
+              colors={
+                isActionDisabled
+                  ? ["#cbd5e1", "#94a3b8"]
+                  : ["#4fb8cc", "#239ab2"]
+              }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.acceptButton}
             >
-              <Text style={styles.acceptButtonText}>Accept Favour</Text>
+              {actionLoading ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Text style={styles.acceptButtonText}>{actionLabel}</Text>
+              )}
             </LinearGradient>
           </Pressable>
         </View>
