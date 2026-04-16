@@ -104,3 +104,15 @@ export async function getOpenFavoursByUser(userId: string): Promise<Favour[]> {
     if (error) throw error;
     return data;
   }
+
+  export async function getInProgressFavourAsRequester(userId: string): Promise<Favour[]> {
+    const {data, error} = await supabase
+      .from("favours")
+      .select("*")
+      .eq("requester_id", userId)
+      .eq("status", "accepted")
+      .order("accepted_at", {ascending: false})
+
+      if (error) throw error;
+      return data;
+  }
