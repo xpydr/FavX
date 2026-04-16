@@ -103,7 +103,7 @@ export async function getOpenFavoursByUser(userId: string): Promise<Favour[]> {
     .from("favours")
     .select("*")
     .eq("requestor_id", userId)
-    .eq("status", "posted")
+    .eq("status", "requested")
     .order("posted_at", {ascending: false});
 
     if (error) throw error;
