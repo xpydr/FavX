@@ -85,7 +85,7 @@ function OpenTab(){
         if(!user?.id) return;
         getOpenFavoursByUser(user.id)
             .then(setFavours)
-            .catch(() => setError("Failed to load open favours."))
+            .catch(() => { setError("Failed to load open favours.");})
             .finally(() => setLoading(false));
 
     }, []);
@@ -324,6 +324,7 @@ const styles = StyleSheet.create({
         fontSize: 26,
         fontWeight: "700",
         color: "#15b1c9",
+        textAlign: "center",
     },
  
     // tab bar

@@ -102,7 +102,7 @@ export async function getOpenFavoursByUser(userId: string): Promise<Favour[]> {
   const {data, error} = await supabase
     .from("favours")
     .select("*")
-    .eq("requestor_id", userId)
+    .eq("requester_id", userId)
     .eq("status", "requested")
     .order("posted_at", {ascending: false});
 
