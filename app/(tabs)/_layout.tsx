@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { House, Hand, User, MessageCircle } from "lucide-react-native";
+import { House, Hand, User, MessageCircle, BadgePlus } from "lucide-react-native";
 
 export default function TabLayout() {
   return (
@@ -32,11 +32,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="favour"
+        name="active"
         options={{
-          title: "Favour",
+          title: "Active Favours",
           tabBarIcon: ({ color }) => (
             <Hand size={28} color={color} strokeWidth={2.5} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="favour"
+        options={{
+          title: "Post",
+          tabBarIcon: ({ color }) => (
+            <BadgePlus size={28} color={color} strokeWidth={2.5} />
           ),
         }}
       />
