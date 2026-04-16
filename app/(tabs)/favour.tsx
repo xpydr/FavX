@@ -63,13 +63,21 @@ export default function PostFavourScreen() {
     const fetchUser = async () => {
       const { data: authData } = await supabase.auth.getUser();
 
-      if (!authData?.user) return;
+      if (!authData?.user) {
+        router.replace("/login");
+        return;
+      }
 
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from("profiles")
         .select("id, credit_balance")
         .eq("id", authData.user.id)
         .single();
+
+      if (error || !profile) {
+        console.error("Profile fetch error:", error);
+        return;
+      }
 
       setUser(profile);
     };
