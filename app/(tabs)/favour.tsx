@@ -2,7 +2,7 @@ import { useRouter } from "expo-router";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
 import * as ExpoLocation from "expo-location";
-import { Calendar, ChevronLeft, MapPin, Search, X } from "lucide-react-native";
+import { Calendar, MapPin, Search, X } from "lucide-react-native";
 import { useFocusEffect } from "expo-router";
 import { useCallback } from "react";
 import { useRef, useState } from "react";
@@ -457,9 +457,6 @@ export default function PostFavourScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Pressable hitSlop={20}>
-            <ChevronLeft size={28} color="#11181c" />
-          </Pressable>
           <Text style={styles.headerTitle}>Create a Favour</Text>
           <View style={{ width: 28 }} />
         </View>
@@ -767,18 +764,18 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8fafc",
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
     paddingTop: 60,
-    paddingBottom: 20,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
     backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: "700",
-    color: "#11181c",
+    color: "#15b1c9",
+    textAlign: "center",
   },
   content: {
     paddingHorizontal: 24,
