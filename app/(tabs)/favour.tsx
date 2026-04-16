@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useRouter } from "expo-router";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
 import * as ExpoLocation from "expo-location";
@@ -26,6 +27,7 @@ interface LocationType {
 }
 
 export default function PostFavourScreen() {
+  const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("Errands");
@@ -34,6 +36,7 @@ export default function PostFavourScreen() {
   const [creditReward, setCreditReward] = useState("0");
   const [useMyLocation, setUseMyLocation] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState<"date" | "time">("date");
   const [showMapModal, setShowMapModal] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<LocationType | null>(
     null,
@@ -323,6 +326,16 @@ export default function PostFavourScreen() {
   };
 
   const handlePost = async () => {
+    console.log({
+      user,
+      title,
+      description,
+      type,
+      category,
+      selectedLocation,
+      creditReward,
+      expiryDate,
+    });
     if (!user?.id) {
       Alert.alert("Sign In Required", "Please sign in to post a favour.");
       return;
@@ -385,7 +398,9 @@ export default function PostFavourScreen() {
         ? selectedLocation.address
         : `${selectedLocation.latitude}, ${selectedLocation.longitude}`;
 
-      await supabase.rpc("create_favour", {
+      const reward = Number(creditReward) || 0;
+
+      const { data, error } = await supabase.rpc("create_favour", {
         p_requester_id: user.id,
         p_category: category,
         p_title: title.trim(),
@@ -398,38 +413,20 @@ export default function PostFavourScreen() {
         p_expires_at: hasExpiry ? expiryDate.toISOString() : null,
       });
 
-      Alert.alert(
-        "Success",
-        "Your favour request has been posted successfully!",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              // reset form
-              setTitle("");
-              setDescription("");
-              setCategory("Errands");
-              setType("");
-              setCreditReward("0");
-              setSelectedLocation(null);
-              setUseMyLocation(false);
+      if (error) throw error;
 
-              // expiry reset (fixed)
-              setHasExpiry(false);
-              setExpiryDate(new Date(Date.now() + 60 * 60 * 1000));
-            },
+      Alert.alert("Success", "Posted!", [
+        {
+          text: "OK",
+          onPress: () => {
+            router.replace("/(tabs)");
           },
-        ],
-      );
+        },
+      ]);
     } catch (error: any) {
-      console.error("Error creating favour:", error);
+      console.error("FULL ERROR:", error);
 
-      Alert.alert(
-        "Error",
-        error?.message ||
-          "Failed to post your favour request. Please try again.",
-        [{ text: "OK" }],
-      );
+      Alert.alert("Error", error?.message || "Failed to post your favour");
     } finally {
       setSubmitting(false);
     }
@@ -585,12 +582,31 @@ export default function PostFavourScreen() {
           {showDatePicker && (
             <DateTimePicker
               value={expiryDate}
-              mode="datetime"
+              mode={Platform.OS === "ios" ? "datetime" : pickerMode}
               minimumDate={new Date()}
               display={Platform.OS === "ios" ? "spinner" : "default"}
               onChange={(event, selectedDate) => {
-                setShowDatePicker(Platform.OS === "ios");
-                if (selectedDate) setExpiryDate(selectedDate);
+                if (Platform.OS === "android") {
+                  if (event.type === "dismissed") {
+                    setShowDatePicker(false);
+                    return;
+                  }
+
+                  if (pickerMode === "date") {
+                    const newDate = selectedDate || expiryDate;
+
+                    setExpiryDate(newDate);
+                    setPickerMode("time");
+                  } else {
+                    const finalDate = selectedDate || expiryDate;
+                    setExpiryDate(finalDate);
+                    setShowDatePicker(false);
+                    setPickerMode("date");
+                  }
+                } else {
+                  // iOS
+                  if (selectedDate) setExpiryDate(selectedDate);
+                }
               }}
             />
           )}
