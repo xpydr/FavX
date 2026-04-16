@@ -17,6 +17,7 @@ import {
     getInProgressFavoursAsRequester,
     getInProgressFavoursAsHelper
 } from "../../services/favour";
+import { useEffect, useState } from 'react';
 
 const MOCK_USER_ID = "33333333-3333-3333-3333-333333333333";
 
@@ -48,14 +49,14 @@ function FavourCard({favour}: {favour: Favour}) {
             />
             <View style={styles.cardContent}>
                 <Text style={styles.cardTitle} numberOfLines={1}>
-                {favour.title}
+                    {favour.title}
                 </Text>
                 <Text style={styles.cardDescription} numberOfLines={2}>
-                {favour.description}
+                    {favour.description}
                 </Text>
                 <View style={styles.cardFooter}>
-                <Clock size={14} color="#15b1c9" />
-                <Text style={styles.cardTime}>{timeLabel}</Text>
+                    <Clock size={14} color="#15b1c9" />
+                    <Text style={styles.cardTime}>{timeLabel}</Text>
                 </View>
             </View>
         </View>
@@ -73,10 +74,147 @@ function EmptyState({message}: {message: string}) {
 }
 
 // open tab
+function OpenTab(){
 
+    const [favours, setFavours] = useState<Favour[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+
+        getOpenFavoursByUser(MOCK_USER_ID)
+            .then(setFavours)
+            .catch(() => setError("Failed to load open favours."))
+            .finally(() => setLoading(false));
+
+    }, []);
+
+    if (loading){
+        return (
+        <View style={styles.centered}>
+            <ActivityIndicator size="large" color="#15b1c9" />
+        </View>
+        );
+    }
+
+    if (error){
+        return <EmptyState message={error} />;
+    }
+
+    if (favours.length === 0){
+        return <EmptyState message="You have no open favour requests." />;
+    }
+
+    return (
+
+        <FlatList
+            data={favours}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => <FavourCard favour={item} />}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+        />
+
+    );
+}
 
 // in progress tab
+function InProgressTab(){
 
+    const [asRequester, setAsRequester] = useState<Favour[]>([]);
+    const [asHelper, setAsHelper] = useState<Favour[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [roleTab, setRoleTab] = useState<"requester" | "helper">("requester");
+
+    useEffect(() => {
+
+        Promise.all([
+            getInProgressFavoursAsRequester(MOCK_USER_ID),
+            getInProgressFavoursAsHelper(MOCK_USER_ID)
+        ])
+            .then(([requesterData, helperData]) => {
+                setAsRequester(requesterData);
+                setAsHelper(helperData);
+            })
+            .catch(() => setError("Failed to load in-progress favours."))
+            .finally(() => setLoading(false));
+
+    }, []);
+
+    if (loading) {
+        return (
+        <View style={styles.centered}>
+            <ActivityIndicator size="large" color="#15b1c9" />
+        </View>
+        );
+    }
+
+    if (error){
+        return <EmptyState message={error} />;
+    }
+
+    const activeFavours = roleTab === "requester" ? asRequester : asHelper;
+
+    return (
+
+        <View style={styles.inProgressContainer}>
+            
+            {/* Role switcher */}
+            <View style={styles.roleSwitcher}>
+                <Pressable
+                    style={[
+                        styles.roleSwitcherBtn,
+                        roleTab === "requester" && styles.roleSwitcherBtnActive,
+                    ]}
+                    onPress={() => setRoleTab("requester")}
+                    >
+                    <Text
+                        style={[
+                        styles.roleSwitcherText,
+                        roleTab === "requester" && styles.roleSwitcherTextActive,
+                        ]}
+                    >As Requester
+                    </Text>
+                </Pressable>
+                <Pressable
+                    style={[
+                        styles.roleSwitcherBtn,
+                        roleTab === "helper" && styles.roleSwitcherBtnActive,
+                    ]}
+                    onPress={() => setRoleTab("helper")}
+                    >
+                    <Text
+                        style={[
+                        styles.roleSwitcherText,
+                        roleTab === "helper" && styles.roleSwitcherTextActive,
+                        ]}
+                    >As Helper
+                    </Text>
+                </Pressable>
+            </View>
+    
+            {activeFavours.length === 0 ? (
+                <EmptyState
+                    message={
+                        roleTab === "requester"
+                        ? "No in-progress favours as requester."
+                        : "No in-progress favours as helper."
+                    }
+                />
+            ) : (
+                <FlatList
+                    data={activeFavours}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => <FavourCard favour={item} />}
+                    contentContainerStyle={styles.listContent}
+                    showsVerticalScrollIndicator={false}
+                />
+            )}
+
+        </View>
+    );
+}
 
 // main screen
 
