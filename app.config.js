@@ -1,4 +1,4 @@
-{
+export default{
   "expo": {
     "name": "FavX",
     "slug": "FavX",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "config": {
-        "googleMapsApiKey": ""
+        "googleMapsApiKey": process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY_IOS
       }
     },
     "android": {
@@ -27,7 +27,7 @@
       "edgeToEdgeEnabled": true,
       "config": {
         "googleMaps": {
-          "apiKey": ""
+          "apiKey": process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY_ANDROID
         },
         "permissions": [
           "ACCESS_FINE_LOCATION",
