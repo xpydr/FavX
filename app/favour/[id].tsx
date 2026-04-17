@@ -98,30 +98,12 @@ export default function FavourDetailsScreen() {
     setActionLoading(true);
 
     try {
-      const { data, error: acceptError } = await supabase
-        .from("favours")
-        .update({
-          helper_id: user.id,
-          status: "accepted",
-          accepted_at: new Date().toISOString(),
-        })
-        .eq("id", favour.id)
-        .is("helper_id", null)
-        .neq("requester_id", user.id)
-        .neq("status", "completed")
-        .select("id")
-        .maybeSingle();
+      const { error: acceptError } = await supabase.rpc("accept_favour", {
+        p_favour_id: favour.id,
+        p_helper_id: user.id,
+      });
 
       if (acceptError) throw acceptError;
-
-      if (!data) {
-        Alert.alert(
-          "Unavailable",
-          "This favour has already been accepted by another user.",
-        );
-        await refreshFavour();
-        return;
-      }
 
       await refreshFavour();
       Alert.alert("Accepted", "You are now the helper for this favour.");
@@ -133,13 +115,13 @@ export default function FavourDetailsScreen() {
   };
 
   const handleConfirmCompletion = async () => {
-    if (!favour) return;
+    if (!favour || !user?.id) return;
 
     setActionLoading(true);
 
     try {
       const { error: completeError } = await supabase.rpc("complete_favour", {
-        favour_id: favour.id,
+        p_favour_id: favour.id,
       });
 
       if (completeError) throw completeError;
@@ -188,11 +170,11 @@ export default function FavourDetailsScreen() {
   const canAccept =
     Boolean(user?.id) && !isRequester && !isAccepted && !isCompleted && !isExpired;
   const canConfirmCompletion =
-    Boolean(user?.id) && isRequester && isAccepted && !isCompleted;
+    Boolean(user?.id) && isHelper && isAccepted && !isCompleted;
 
   let actionLabel = "Unavailable";
   if (!user) actionLabel = "Sign in to Accept";
-  else if (canConfirmCompletion) actionLabel = "Confirm Completion";
+  else if (canConfirmCompletion) actionLabel = "Mark as completed";
   else if (canAccept) actionLabel = "Accept Favour";
   else if (isExpired) actionLabel = "Favour Expired";
   else if (isCompleted) actionLabel = "Favour Completed";
