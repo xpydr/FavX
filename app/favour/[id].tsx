@@ -121,7 +121,7 @@ export default function FavourDetailsScreen() {
 
     try {
       const { error: completeError } = await supabase.rpc("complete_favour", {
-        p_favour_id: favour.id,
+        favour_id: favour.id,
       });
 
       if (completeError) throw completeError;
@@ -154,8 +154,8 @@ export default function FavourDetailsScreen() {
     );
   }
 
-  const latitude = Number(favour.latitude)
-  const longitude = Number(favour.longitude)
+  const latitude = Number(favour.latitude);
+  const longitude = Number(favour.longitude);
   const hasValidCoords = !isNaN(latitude) && !isNaN(longitude);
   const expiryDate = favour.expires_at ? new Date(favour.expires_at) : null;
   const hasExpiry = Boolean(expiryDate && !isNaN(expiryDate.getTime()));
@@ -168,9 +168,13 @@ export default function FavourDetailsScreen() {
   const isRequester = user?.id === favour.requester_id;
   const isHelper = user?.id === favour.helper_id;
   const canAccept =
-    Boolean(user?.id) && !isRequester && !isAccepted && !isCompleted && !isExpired;
+    Boolean(user?.id) &&
+    !isRequester &&
+    !isAccepted &&
+    !isCompleted &&
+    !isExpired;
   const canConfirmCompletion =
-    Boolean(user?.id) && isHelper && isAccepted && !isCompleted;
+    Boolean(user?.id) && isRequester && isAccepted && !isCompleted;
 
   let actionLabel = "Unavailable";
   if (!user) actionLabel = "Sign in to Accept";
@@ -178,6 +182,8 @@ export default function FavourDetailsScreen() {
   else if (canAccept) actionLabel = "Accept Favour";
   else if (isExpired) actionLabel = "Favour Expired";
   else if (isCompleted) actionLabel = "Favour Completed";
+  else if (isHelper && isAccepted)
+    actionLabel = "Waiting for requester to complete";
   else if (isHelper) actionLabel = "You Accepted This Favour";
   else if (isRequester) actionLabel = "Waiting for Helper";
   else if (isAccepted) actionLabel = "Already Accepted";
@@ -201,7 +207,6 @@ export default function FavourDetailsScreen() {
         </Pressable>
 
         <View style={styles.card}>
-          
           {hasValidCoords ? (
             <MapView
               provider={PROVIDER_GOOGLE}
@@ -210,19 +215,16 @@ export default function FavourDetailsScreen() {
                 latitude,
                 longitude,
                 latitudeDelta: 0.01,
-                longitudeDelta: 0.01
+                longitudeDelta: 0.01,
               }}
             >
-              <Marker
-                coordinate={{latitude, longitude}}
-                pinColor="#15b1c9"
-              />
+              <Marker coordinate={{ latitude, longitude }} pinColor="#15b1c9" />
             </MapView>
           ) : (
             <View style={styles.mapFallback}>
               <MapPin size={24} color="#9ca3af" />
               <Text style={styles.mapFallbackText}>Location unavailable</Text>
-            </View>  
+            </View>
           )}
 
           <Text style={styles.caption}>Favour requested by</Text>
