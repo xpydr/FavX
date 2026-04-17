@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import {
   View,
@@ -7,62 +7,139 @@ import {
   StyleSheet,
   Pressable,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Image as ExpoImage } from "expo-image";
-import { useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";
+import { createRewardRedemption } from "../../services/reward";
 
 export default function RedeemScreen() {
-  const router = useRouter();
   const { user } = useAuth();
   const [rewards, setRewards] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [credits, setCredits] = useState<number | null>(null);
+  const [redeemingRewardId, setRedeemingRewardId] = useState<string | null>(
+    null,
+  );
 
-  useEffect(() => {
-    const loadRewards = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("rewards")
-          .select("*")
-          .eq("is_active", true);
-
-        if (error) {
-          console.log("REWARDS ERROR:", error);
-          return;
-        }
-
-        setRewards(data || []);
-      } catch (err) {
-        console.log("REWARDS FETCH ERROR:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadRewards();
-  }, []);
-
-  useEffect(() => {
-    const loadCredits = async () => {
-      if (!user) return;
-
+  const fetchRewards = useCallback(async () => {
+    try {
       const { data, error } = await supabase
-        .from("profiles")
-        .select("credit_balance")
-        .eq("id", user.id)
-        .single();
+        .from("rewards")
+        .select("*")
+        .eq("is_active", true);
 
       if (error) {
-        console.log("CREDITS ERROR:", error);
+        console.log("REWARDS ERROR:", error);
         return;
       }
 
-      setCredits(data?.credit_balance || 0);
-    };
+      setRewards(data || []);
+    } catch (err) {
+      console.log("REWARDS FETCH ERROR:", err);
+    }
+  }, []);
 
-    loadCredits();
+  const loadCredits = useCallback(async () => {
+    if (!user) {
+      setCredits(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("credit_balance")
+      .eq("id", user.id)
+      .single();
+
+    if (error) {
+      console.log("CREDITS ERROR:", error);
+      return;
+    }
+
+    setCredits(data?.credit_balance || 0);
   }, [user]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        await fetchRewards();
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchRewards]);
+
+  useEffect(() => {
+    loadCredits();
+  }, [loadCredits]);
+
+  const handleRedeemPress = (item: any) => {
+    if (!user?.id) {
+      Alert.alert("Sign In Required", "Please sign in to redeem rewards.");
+      return;
+    }
+
+    if (credits === null) {
+      Alert.alert(
+        "One moment",
+        "Your point balance is still loading. Please try again in a second.",
+      );
+      return;
+    }
+
+    const price = Number(item.price_credits) || 0;
+    if (credits < price) {
+      Alert.alert(
+        "Not enough points",
+        `This reward costs ${price.toLocaleString()} pts but you have ${credits.toLocaleString()} pts.`,
+      );
+      return;
+    }
+
+    Alert.alert(
+      "Redeem reward?",
+      `Spend ${price.toLocaleString()} pts on "${item.title}"?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Redeem",
+          onPress: () => void confirmRedeem(item),
+        },
+      ],
+    );
+  };
+
+  const confirmRedeem = async (item: any) => {
+    if (!user?.id) return;
+
+    const price = Number(item.price_credits) || 0;
+    setRedeemingRewardId(item.id);
+
+    try {
+      await createRewardRedemption({
+        user_id: user.id,
+        reward_id: item.id,
+        quantity: 1,
+        total_price: price,
+        status: "pending",
+      });
+
+      await Promise.all([loadCredits(), fetchRewards()]);
+
+      Alert.alert("Success", "Your reward has been redeemed.");
+    } catch (error: any) {
+      Alert.alert("Error", error?.message || "Failed to redeem reward.");
+    } finally {
+      setRedeemingRewardId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -130,12 +207,13 @@ export default function RedeemScreen() {
                   <Pressable
                     style={[
                       styles.redeemButton,
-                      isOutOfStock && styles.disabledButton,
+                      (isOutOfStock || redeemingRewardId === item.id) &&
+                        styles.disabledButton,
                     ]}
-                    disabled={isOutOfStock}
+                    disabled={isOutOfStock || redeemingRewardId === item.id}
                     onPress={() => {
                       if (isOutOfStock) return;
-                      console.log("Redeem:", item.id);
+                      handleRedeemPress(item);
                     }}
                   >
                     <Text style={styles.redeemText}>
