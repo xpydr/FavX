@@ -71,7 +71,7 @@ function mapApiFavourToListItem(row: {
   category: string;
   location: string;
   posted_at: Date | string;
-  expires_at?: string | null;
+  expires_at?: Date | string | null;
 }): FavourListItem {
   return {
     id: String(row.id),
@@ -83,6 +83,29 @@ function mapApiFavourToListItem(row: {
     category: row.category ?? "Other",
     expires_at: row.expires_at ?? null,
   };
+}
+
+function isFavourVisibleOnDashboard(row: {
+  status?: string | null;
+  expires_at?: Date | string | null;
+}): boolean {
+  const normalizedStatus = (row.status ?? "").toLowerCase();
+  if (normalizedStatus === "completed" || normalizedStatus === "expired") {
+    return false;
+  }
+
+  if (!row.expires_at) {
+    return true;
+  }
+
+  const expiry =
+    row.expires_at instanceof Date ? row.expires_at : new Date(row.expires_at);
+
+  if (isNaN(expiry.getTime())) {
+    return true;
+  }
+
+  return expiry.getTime() > Date.now();
 }
 
 const getExpiryLabel = (expiresAt?: string | null) => {
@@ -131,7 +154,8 @@ export default function HomeScreen() {
     setIsLoadingFavours(true);
     getFavours()
       .then((data) => {
-        setFavours(data ? data.map(mapApiFavourToListItem) : []);
+        const visibleFavours = (data ?? []).filter(isFavourVisibleOnDashboard);
+        setFavours(visibleFavours.map(mapApiFavourToListItem));
       })
       .catch(() => {
         setLoadError(true);
