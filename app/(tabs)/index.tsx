@@ -92,7 +92,11 @@ function isFavourVisibleOnDashboard(row: {
   expires_at?: Date | string | null;
 }): boolean {
   const normalizedStatus = (row.status ?? "").toLowerCase();
-  if (normalizedStatus === "completed" || normalizedStatus === "expired") {
+  if (
+    normalizedStatus === "accepted" ||
+    normalizedStatus === "completed" ||
+    normalizedStatus === "expired"
+  ) {
     return false;
   }
 
