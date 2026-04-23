@@ -2,6 +2,32 @@
 
 <img width="1536" height="1024" alt="ChatGPT Image Mar 19, 2026, 10_26_10 PM" src="https://github.com/user-attachments/assets/9eaf6019-0a87-4127-9bed-556bb0aba5ff" />
 
+## How to Run
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Start the Expo development server:
+
+```bash
+npx expo start
+```
+
+3. Open the app:
+- Press `a` in the Expo terminal for Android emulator.
+- Press `w` for web preview.
+- Scan the QR code using Expo Go on your phone.
+
+Note: Use Node 20 LTS for best compatibility with Expo SDK 54.
+
+## Test User Login
+
+- Username: jamie_bks123@gmail.com
+- Password: jamie_bks123
+
 ## Features
 
 - 🤝 **Community-driven favours** — Request help or offer support to others nearby.
@@ -56,6 +82,22 @@ The vision of FavX is to create a platform where communities can support each ot
 - **Supabase backend** — Authentication, database, and real-time services.
 - **PostgreSQL database** — Reliable data storage and management.
 - **Modern development tools** — GitHub, VS Code, and Figma for collaboration and design.
+
+## Libraries
+
+- **UI and Icons** — lucide-react-native, expo-image, expo-linear-gradient.
+- **Navigation and Runtime** — expo-router, react-native-gesture-handler, react-native-screens, react-native-safe-area-context.
+- **Device Features** — expo-location, expo-image-picker, @react-native-community/datetimepicker, @react-native-picker/picker.
+- **Maps** — react-native-maps.
+- **Data and Storage** — @supabase/supabase-js, @react-native-async-storage/async-storage.
+
+## External Software
+
+- npm
+- Expo Go
+- VS Code
+- Git + GitHub
+- Figma
 
 ## 👥 Collaborators
 
