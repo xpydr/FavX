@@ -16,6 +16,7 @@ export interface Favour {
   expires_at?: Date | string | null;
   accepted_at?: Date | string;
   completed_at?: Date | string;
+  images?: string[] | null;
 }
 
 export interface FavourDetails extends Favour {
@@ -36,13 +37,14 @@ export interface CreateFavourInput {
   longitude: number;
   status: string;
   credit_reward: number;
+  images?: string[] | null;
 }
 
 export async function getFavours(): Promise<Favour[]> {
   const { data, error } = await supabase
     .from("favours")
     .select(
-      "id, requester_id, helper_id, category, title, description, type, location, latitude, longitude, status, credit_reward, posted_at, expires_at, accepted_at, completed_at",
+      "id, requester_id, helper_id, category, title, description, type, location, latitude, longitude, status, credit_reward, posted_at, expires_at, accepted_at, completed_at, images",
     );
   if (error) throw error;
   return data;
@@ -65,7 +67,8 @@ export async function getFavourDetailsById(id: string): Promise<FavourDetails> {
 
   if (profileError) throw profileError;
 
-  const requesterName = profile?.full_name || profile?.username || "Unknown user";
+  const requesterName =
+    profile?.full_name || profile?.username || "Unknown user";
 
   return {
     ...favour,
@@ -78,7 +81,7 @@ export async function getFavourDetailsById(id: string): Promise<FavourDetails> {
 
 export async function createFavour(favour: CreateFavourInput) {
   const favourData = {
-    ...favour
+    ...favour,
   };
 
   const { data, error } = await supabase.from("favours").insert(favourData);
@@ -87,7 +90,10 @@ export async function createFavour(favour: CreateFavourInput) {
 }
 
 export async function updateFavour(favour: Favour) {
-  const { data, error } = await supabase.from("favours").update(favour).eq("id", favour.id);
+  const { data, error } = await supabase
+    .from("favours")
+    .update(favour)
+    .eq("id", favour.id);
   if (error) throw error;
   return data;
 }
@@ -99,37 +105,41 @@ export async function deleteFavour(id: string) {
 }
 
 export async function getOpenFavoursByUser(userId: string): Promise<Favour[]> {
-  const {data, error} = await supabase
+  const { data, error } = await supabase
     .from("favours")
     .select("*")
     .eq("requester_id", userId)
     .eq("status", "requested")
-    .order("posted_at", {ascending: false});
+    .order("posted_at", { ascending: false });
 
-    if (error) throw error;
-    return data;
-  }
+  if (error) throw error;
+  return data;
+}
 
-  export async function getInProgressFavoursAsRequester(userId: string): Promise<Favour[]> {
-    const {data, error} = await supabase
-      .from("favours")
-      .select("*")
-      .eq("requester_id", userId)
-      .eq("status", "accepted")
-      .order("accepted_at", {ascending: false})
+export async function getInProgressFavoursAsRequester(
+  userId: string,
+): Promise<Favour[]> {
+  const { data, error } = await supabase
+    .from("favours")
+    .select("*")
+    .eq("requester_id", userId)
+    .eq("status", "accepted")
+    .order("accepted_at", { ascending: false });
 
-      if (error) throw error;
-      return data;
-  }
+  if (error) throw error;
+  return data;
+}
 
-    export async function getInProgressFavoursAsHelper(userId: string): Promise<Favour[]> {
-    const {data, error} = await supabase
-      .from("favours")
-      .select("*")
-      .eq("helper_id", userId)
-      .eq("status", "accepted")
-      .order("accepted_at", {ascending: false})
+export async function getInProgressFavoursAsHelper(
+  userId: string,
+): Promise<Favour[]> {
+  const { data, error } = await supabase
+    .from("favours")
+    .select("*")
+    .eq("helper_id", userId)
+    .eq("status", "accepted")
+    .order("accepted_at", { ascending: false });
 
-      if (error) throw error;
-      return data;
-  }
+  if (error) throw error;
+  return data;
+}

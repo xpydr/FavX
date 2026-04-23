@@ -72,16 +72,19 @@ function mapApiFavourToListItem(row: {
   location: string;
   posted_at: Date | string;
   expires_at?: Date | string | null;
+  images?: string[] | null;
 }): FavourListItem {
   const expiresAtValue =
-    row.expires_at instanceof Date ? row.expires_at.toISOString() : row.expires_at;
+    row.expires_at instanceof Date
+      ? row.expires_at.toISOString()
+      : row.expires_at;
   return {
     id: String(row.id),
     title: row.title ?? "—",
     description: row.description ?? "—",
     distance: row.location ?? "—",
     date: formatFavourDate(row.posted_at),
-    image: null, // images not in scope for fetched favours
+    image: row.images?.[0] ?? null,
     category: row.category ?? "Other",
     expires_at: expiresAtValue ?? null,
   };

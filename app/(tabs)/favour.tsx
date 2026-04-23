@@ -21,6 +21,8 @@ import {
   View,
 } from "react-native";
 import { supabase } from "../../lib/supabase";
+import * as ImagePicker from "expo-image-picker";
+import { Image as ExpoImage } from "expo-image";
 interface LocationType {
   latitude: number;
   longitude: number;
@@ -60,6 +62,8 @@ export default function PostFavourScreen() {
   const [expiryDate, setExpiryDate] = useState(
     new Date(Date.now() + 60 * 60 * 1000),
   );
+  const [images, setImages] = useState<string[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   const resetForm = () => {
     setTitle("");
@@ -344,6 +348,74 @@ export default function PostFavourScreen() {
       });
     }
   };
+  const pickImages = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission required");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      const uris = result.assets.map((a) => a.uri);
+      setImages((prev) => [...prev, ...uris]);
+    }
+  };
+
+  const takePhoto = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) return;
+
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      setImages((prev) => [...prev, result.assets[0].uri]);
+    }
+  };
+const uploadImages = async () => {
+  if (images.length === 0) return [];
+
+  const uploaded: string[] = [];
+
+  for (const uri of images) {
+    try {
+      const ext = uri.split(".").pop() || "jpg";
+      const filePath = `${user.id}/${Date.now()}.${ext}`;
+
+      const response = await fetch(uri);
+      const arrayBuffer = await response.arrayBuffer();
+
+      const { error } = await supabase.storage
+        .from("favour-images")
+        .upload(filePath, arrayBuffer, {
+          contentType: `image/${ext === "jpg" ? "jpeg" : ext}`,
+        });
+
+      if (error) {
+        console.log("UPLOAD ERROR:", error);
+        throw error;
+      }
+
+      const { data } = supabase.storage
+        .from("favour-images")
+        .getPublicUrl(filePath);
+
+      uploaded.push(data.publicUrl);
+    } catch (err) {
+      console.log("ONE IMAGE FAILED:", err);
+      throw err;
+    }
+  }
+
+  return uploaded;
+};
 
   const handlePost = async () => {
     console.log({
@@ -419,7 +491,7 @@ export default function PostFavourScreen() {
         : `${selectedLocation.latitude}, ${selectedLocation.longitude}`;
 
       const reward = Number(creditReward) || 0;
-
+      const imageUrls = await uploadImages();
       const { data, error } = await supabase.rpc("create_favour", {
         p_requester_id: user.id,
         p_category: category,
@@ -431,6 +503,7 @@ export default function PostFavourScreen() {
         p_longitude: selectedLocation.longitude,
         p_credit_reward: reward,
         p_expires_at: hasExpiry ? expiryDate.toISOString() : null,
+        p_images: imageUrls,
       });
 
       if (error) throw error;
@@ -512,6 +585,45 @@ export default function PostFavourScreen() {
             style={[styles.input, styles.textArea]}
             placeholderTextColor="#9ca3af"
           />
+
+          {/* Photos */}
+          <Text style={styles.label}>Photos </Text>
+
+          <View style={{ flexDirection: "row", gap: 10, marginBottom: 12 }}>
+            <Pressable style={styles.mapButton} onPress={pickImages}>
+              <Text style={styles.mapButtonText}>Gallery</Text>
+            </Pressable>
+
+            <Pressable style={styles.mapButton} onPress={takePhoto}>
+              <Text style={styles.mapButtonText}>Camera</Text>
+            </Pressable>
+          </View>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {images.map((uri, i) => (
+              <View key={i} style={{ marginRight: 10 }}>
+                <ExpoImage
+                  source={{ uri }}
+                  style={{ width: 90, height: 90, borderRadius: 10 }}
+                />
+                <Pressable
+                  onPress={() =>
+                    setImages((prev) => prev.filter((_, index) => index !== i))
+                  }
+                  style={{
+                    position: "absolute",
+                    top: -6,
+                    right: -6,
+                    backgroundColor: "black",
+                    borderRadius: 10,
+                    padding: 4,
+                  }}
+                >
+                  <Text style={{ color: "white", fontSize: 12 }}>X</Text>
+                </Pressable>
+              </View>
+            ))}
+          </ScrollView>
 
           {/* Credit reward */}
           <Text style={styles.label}>Credit reward</Text>
