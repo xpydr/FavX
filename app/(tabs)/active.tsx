@@ -328,18 +328,24 @@ function ClosedTab(){
 // main screen
 export default function ActiveFavoursScreen() {
 
-    const [activeTab, setActiveTab] = useState<"open" | "inprogress">("open");
+    const [activeTab, setActiveTab] = useState<"open" | "inprogress" | "closed">("open");
     const scrollRef = useRef<ScrollView>(null);
 
-    const handleTabPress = useCallback((tab: "open" | "inprogress", index: number) => {
+    const handleTabPress = useCallback((tab: "open" | "inprogress" | "closed", index: number) => {
         setActiveTab(tab);
         scrollRef.current?.scrollTo({ x: index * SCREEN_WIDTH, animated: true });
     }, []);
 
-    const handleScrollEnd = useCallback((e: any) => {
-        const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-        setActiveTab(index === 0 ? "open" : "inprogress");
-    }, []);
+    const handleScrollEnd = useCallback(
+        (e: any) => {
+            const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+            if (index === 0) setActiveTab("open");
+            else if (index === 1) setActiveTab("inprogress");
+            else setActiveTab("closed");
+        },
+        []
+    );
+
 
     return (
 
@@ -347,7 +353,7 @@ export default function ActiveFavoursScreen() {
             
             {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Active Favours</Text>
+                <Text style={styles.headerTitle}>My Favs</Text>
             </View>
         
             {/* Tab bar */}
@@ -379,6 +385,21 @@ export default function ActiveFavoursScreen() {
                     </Text>
                     {activeTab === "inprogress" && <View style={styles.tabIndicator} />}
                 </Pressable>
+
+                <Pressable
+                    style={styles.tabItem}
+                    onPress={() => handleTabPress("closed", 2)}
+                >
+                    <Text
+                        style={[
+                        styles.tabLabel,
+                        activeTab === "closed" && styles.tabLabelActive,
+                        ]}
+                    >Closed
+                    </Text>
+                    {activeTab === "closed" && <View style={styles.tabIndicator} />}
+                </Pressable>
+
             </View>
     
             {/* Swipeable content */}
@@ -396,6 +417,9 @@ export default function ActiveFavoursScreen() {
                 </View>
                 <View style={{ width: SCREEN_WIDTH }}>
                     <InProgressTab />
+                </View>
+                <View style={{ width: SCREEN_WIDTH }}>
+                    <ClosedTab />
                 </View>
             </ScrollView>
         </View>
