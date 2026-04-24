@@ -15,7 +15,9 @@ import {
     Favour,
     getOpenFavoursByUser,
     getInProgressFavoursAsRequester,
-    getInProgressFavoursAsHelper
+    getInProgressFavoursAsHelper,
+    getClosedFavoursAsHelper,
+    getClosedFavoursAsRequester
 } from "../../services/favour";
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
@@ -218,6 +220,109 @@ function InProgressTab(){
 
         </View>
     );
+}
+
+// closed tab
+function ClosedTab(){
+
+    const {user} = useAuth();
+    const [asRequester, setAsRequester] = useState<Favour[]>([]);
+    const [asHelper, setAsHelper] = useState<Favour[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [roleTab, setRoleTab] = useState<"requester" | "helper">("requester");
+
+    useEffect(() => {
+
+        if (!user?.id) return;
+
+        Promise.all([
+            getClosedFavoursAsRequester(user.id),
+            getClosedFavoursAsHelper(user.id)
+        ])
+            .then(([requesterData, helperData]) => {
+                setAsRequester(requesterData);
+                setAsHelper(helperData);
+            })
+            .catch(() => setError("Failed to load closed favours."))
+            .finally(() => setLoading(false));
+
+    }, []);
+
+    if (loading) {
+        return (
+        <View style={styles.centered}>
+            <ActivityIndicator size="large" color="#15b1c9" />
+        </View>
+        );
+    }
+
+    if (error){
+        return <EmptyState message={error} />;
+    }
+
+    const closedFavours = roleTab === "requester" ? asRequester : asHelper;
+
+      return (
+    <View style={styles.inProgressContainer}>
+      
+        {/* Role switcher */}
+        <View style={styles.roleSwitcher}>
+            
+            <Pressable
+                style={[
+                    styles.roleSwitcherBtn,
+                    roleTab === "requester" && styles.roleSwitcherBtnActive
+            ]}
+                onPress={() => setRoleTab("requester")}
+            >
+                <Text
+                    style={[
+                    styles.roleSwitcherText,
+                    roleTab === "requester" && styles.roleSwitcherTextActive
+                    ]}
+                >As Requester
+                </Text>
+            </Pressable>
+
+            <Pressable
+                style={[
+                    styles.roleSwitcherBtn,
+                    roleTab === "helper" && styles.roleSwitcherBtnActive
+            ]}
+                onPress={() => setRoleTab("helper")}
+            >
+                <Text
+                    style={[
+                    styles.roleSwitcherText,
+                    roleTab === "helper" && styles.roleSwitcherTextActive
+                    ]}
+                >As Helper
+                </Text>
+            </Pressable>
+
+        </View>
+    
+        {closedFavours.length === 0 ? (
+            <EmptyState
+                message={
+                    roleTab === "requester"
+                    ? "No closed favours as requester."
+                    : "No closed favours as helper."
+            }
+            />
+        ) : (
+            <FlatList
+                data={closedFavours}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => <FavourCard favour={item} />}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+            />
+        )}
+        </View>
+  );
+
 }
 
 // main screen
